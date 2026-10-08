@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "status": "frozen",
+  "data_as_of": "2026-09-29",
+  "sample": {
+    "price_start": "2021-01-04",
+    "price_end": "2026-09-29",
+    "return_observations": 1443,
+    "gold_benchmark": "GC=F",
+    "bitcoin_benchmark": "BTC-USD"
+  },
+  "Q1": {
+    "full_sample_return_correlation": 0.07479049835234715,
+    "gold": {"annualized_volatility": 0.18725096713831246, "maximum_drawdown": -0.24937948049055436, "daily_cvar_95_loss": 0.028647462075331004},
+    "bitcoin": {"annualized_volatility": 0.5724195967572541, "maximum_drawdown": -0.7663456370856909, "daily_cvar_95_loss": 0.08474744888164887},
+    "latest_rolling_correlation": {"window_60": 0.5346636752089524, "window_252": 0.22860026965248073},
+    "claim_scope": "Bitcoin is materially riskier than gold; diversification is time-varying rather than permanent."
+  },
+  "Q2": {
+    "rows_used": 1442,
+    "factor_count": 6,
+    "rolling_windows_per_asset": 57,
+    "maximum_vif": 2.669422486161202,
+    "maximum_rolling_condition_number": 5.339024114366864,
+    "baseline_fdr_significant_count": 0,
+    "extra_lag_coefficient_cosine_similarity": {"gold": 0.1621093944503889, "bitcoin": -0.22302395611369968},
+    "claim_scope": "Associations are weak and time-varying; no stable timing, causal, or predictive claim is permitted."
+  },
+  "Q3": {
+    "state_counts": {"normal": 893, "macro_stress": 183, "crypto_stress": 85},
+    "state_shares": {"normal": 0.7691645133505599, "macro_stress": 0.15762273901808785, "crypto_stress": 0.07321274763135228},
+    "switch_rate": 0.05603448275862069,
+    "threshold_agreement_0_9_vs_1_0": 0.9888027562446167,
+    "bitcoin_annualized_volatility_by_state": {"normal": 0.4551575683880729, "macro_stress": 0.6267873741339212, "crypto_stress": 0.7928960944796224},
+    "event_count": 11,
+    "event_window": "[-5,+10] common quote days",
+    "claim_scope": "States support risk description and warnings only; single-event categories are case evidence."
+  },
+  "Q4": {
+    "selected_method_id": "Q4-M0",
+    "latest_signal_date": "2026-09-23",
+    "latest_state": "normal",
+    "target_weights": {
+      "conservative": {"gold": 0.8581281283391986, "bitcoin": 0.14187187166080137},
+      "balanced": {"gold": 0.6940239907612121, "bitcoin": 0.30597600923878787},
+      "aggressive": {"gold": 0.5160860055978037, "bitcoin": 0.4839139944021963}
+    },
+    "backtest": {
+      "start": "2022-02-17",
+      "end": "2026-09-29",
+      "common_quote_days": 1160,
+      "conservative": {"net_cagr": 0.2031224283351174, "annualized_volatility": 0.18737247797515855, "maximum_drawdown": -0.25398693145075335},
+      "balanced": {"net_cagr": 0.21330697620755057, "annualized_volatility": 0.1941764914619425, "maximum_drawdown": -0.2515521399406946},
+      "aggressive": {"net_cagr": 0.22027034028231385, "annualized_volatility": 0.21125830289561842, "maximum_drawdown": -0.2655180931861322}
+    },
+    "claim_scope": "These are research targets from the latest scheduled signal, not guaranteed returns or personalized advice."
+  },
+  "canonical_hashes": {
+    "data_clean/latest/gold_btc_daily.csv": "e9a692e0b9cc6106c8db295e1b5b2ab27ba1fa29a6d5a7e1da7dba8878e8bcae",
+    "data_clean/latest/model_features_core.csv": "8273c192720dd505b6d5d16028bd9277888f5b816002ef0c54a44836c2f98f14",
+    "data_clean/latest/q3_state_inputs.csv": "572bbcf960e027fe21a5c21a77368938d05b0240676a12fdb649403e2908f7a5",
+    "data/events/event_calendar.csv": "c36c479475496cd612805b97c4f00c0040b4078f87348479c77eddc8528f6145",
+    "results/Q1/experiments/round1/metrics/q1_metrics.json": "c03adde4b88e06a6c193d08fe15dad703b7fb5a9571fbf4de439d1e4997df869",
+    "results/Q2/experiments/round1/metrics/q2_metrics.json": "94f1fc2c3129b688637b107379eeb9e8d26675cd51c108b16e441a43c5e9a538",
+    "results/Q3/experiments/round1/metrics/q3_metrics.json": "89f441b32e6caf6daad5049a35c6c87fcaff6fe6d1ab122d3d481e0876964afd",
+    "results/Q4/final/final_allocation.json": "d0c8e71a7c57e4f7efcf83a909eddb8120bbff61d11588fc521d549686b48e68"
+  }
+}
+
+
