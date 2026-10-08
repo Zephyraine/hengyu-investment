@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "question_id": "Q4",
+  "status": "human_approved_final",
+  "as_of_date": "2026-09-29",
+  "latest_signal_date": "2026-09-23",
+  "market_state_at_signal": "normal",
+  "selected_method": {
+    "id": "Q4-M0",
+    "label": "方案A：对角风险预算基线",
+    "selection_reason": "在相同样本、约束和成本口径下，三档均取得更高净年化收益、更浅最大回撤和更低换手。",
+    "state_module_role": "Q3状态仅用于风险提示和解释，不自动改变目标权重。"
+  },
+  "universe": {
+    "gold_benchmark": "GC=F",
+    "bitcoin_benchmark": "BTC-USD",
+    "assets": ["gold", "bitcoin"],
+    "long_only": true,
+    "fully_invested": true,
+    "cash_weight": 0.0,
+    "leverage": false
+  },
+  "rules": {
+    "lookback_common_quote_days": 252,
+    "scheduled_check_step_common_quote_days": 21,
+    "no_trade_buffer_btc_weight": 0.02,
+    "one_way_transaction_cost_bps": 10,
+    "risk_budget_btc": {
+      "conservative": 0.20,
+      "balanced": 0.40,
+      "aggressive": 0.60
+    },
+    "absolute_btc_caps": {
+      "conservative": 0.15,
+      "balanced": 0.35,
+      "aggressive": 0.60
+    },
+    "rebalance_instruction": "Only evaluate on scheduled check dates. Rebalance to the new target only when the candidate BTC weight differs from the active target by at least 0.02."
+  },
+  "profiles": {
+    "conservative": {
+      "target_weights": {"gold": 0.8581281283391986, "bitcoin": 0.14187187166080137},
+      "end_sample_drifted_weights": {"gold": 0.8319382601430795, "bitcoin": 0.1680617398569205},
+      "historical_target_btc_range": {"minimum": 0.04719344446436139, "median": 0.06898515895947518, "maximum": 0.14187187166080137},
+      "backtest": {"cagr_net": 0.2031224283351174, "annualized_volatility": 0.18737247797515855, "maximum_drawdown": -0.25398693145075335, "daily_cvar_95_loss": 0.027296551425087218, "annualized_turnover": 0.26062746962252703}
+    },
+    "balanced": {
+      "target_weights": {"gold": 0.6940239907612121, "bitcoin": 0.30597600923878787},
+      "end_sample_drifted_weights": {"gold": 0.6498995200292556, "bitcoin": 0.3501004799707444},
+      "historical_target_btc_range": {"minimum": 0.1166722434981899, "median": 0.15940391738618423, "maximum": 0.30597600923878787},
+      "backtest": {"cagr_net": 0.21330697620755057, "annualized_volatility": 0.1941764914619425, "maximum_drawdown": -0.2515521399406946, "daily_cvar_95_loss": 0.02734349540937594, "annualized_turnover": 0.31179830353562177}
+    },
+    "aggressive": {
+      "target_weights": {"gold": 0.5160860055978037, "bitcoin": 0.4839139944021963},
+      "end_sample_drifted_weights": {"gold": 0.4604946265157549, "bitcoin": 0.5395053734842451},
+      "historical_target_btc_range": {"minimum": 0.22910046615495291, "median": 0.2905067669944435, "maximum": 0.4839139944021963},
+      "backtest": {"cagr_net": 0.22027034028231385, "annualized_volatility": 0.21125830289561842, "maximum_drawdown": -0.2655180931861322, "daily_cvar_95_loss": 0.028855772777077286, "annualized_turnover": 0.37020923587183874}
+    }
+  },
+  "backtest_scope": {
+    "start": "2022-02-17",
+    "end": "2026-09-29",
+    "common_quote_days": 1160,
+    "past_information_only": true,
+    "transaction_cost_included": true
+  },
+  "robustness": {
+    "profile_risk_ordering_passed": true,
+    "maximum_latest_btc_weight_difference_across_parameter_variants": 0.0112,
+    "maximum_selected_method_cagr_reduction_from_5_to_25_bps": 0.000904207251541056,
+    "fallback_triggered": false
+  },
+  "interpretation": {
+    "target_vs_drift": "target_weights are the approved recommendation from the latest scheduled signal; end_sample_drifted_weights are observed post-signal holdings after price drift and are not a new recommendation.",
+    "next_action": "Keep the latest target until the next scheduled check; do not infer an unscheduled rebalance solely from drift.",
+    "disclaimer": "Historical backtests are research evidence, not a return guarantee or personalized investment advice."
+  },
+  "sources": {
+    "clean_data": "data_clean/latest/gold_btc_daily.csv",
+    "state_labels": "results/Q3/experiments/round1/tables/q3_state_labels.csv",
+    "signals": "results/Q4/experiments/round1/tables/q4_signals.csv",
+    "performance": "results/Q4/experiments/round1/tables/q4_performance.csv",
+    "latest_allocations": "results/Q4/experiments/round1/tables/q4_latest_allocations.csv",
+    "robustness": "robustness/Q4/q4_robustness_summary.json",
+    "human_decision": "methods/Q4/q4_decisions.jsonl"
+  }
+}
