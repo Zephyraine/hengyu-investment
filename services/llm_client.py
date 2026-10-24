@@ -90,7 +90,7 @@ def _post_chat(config: dict[str, str], payload: dict) -> dict:
             json=payload,
             # Keep the public demo responsive when a configured provider has
             # expired or is unreachable. The caller falls back to local copy.
-            timeout=(4, 12),
+            timeout=(3, 6),
         )
         response.raise_for_status()
         body = response.json()
