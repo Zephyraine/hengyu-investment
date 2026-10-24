@@ -100,13 +100,14 @@ st.markdown(
       [data-testid="stSidebarCollapsedControl"] button{background:rgba(3,11,18,.88)!important;border:1px solid rgba(244,210,139,.34)!important;color:var(--gold)!important;border-radius:9px!important}
       [data-testid="stSidebar"]>div:first-child{padding:1.1rem .85rem}
       .block-container,[data-testid="stMainBlockContainer"]{padding:1rem 1rem 5.5rem!important;margin-left:.35rem!important}
-      .st-key-mobile_navigation{display:block!important;position:sticky;top:.45rem;z-index:60;margin:0 0 .8rem;padding:.48rem;border:1px solid rgba(244,210,139,.28);border-radius:16px;background:linear-gradient(135deg,rgba(4,14,23,.96),rgba(9,25,36,.94));backdrop-filter:blur(16px);box-shadow:0 12px 30px rgba(0,0,0,.3)}
-      .st-key-mobile_navigation [data-testid="stButtonGroup"]{margin:0!important}
-      .st-key-mobile_navigation [data-testid="stButtonGroup"] [data-baseweb="button-group"]{gap:.38rem!important;display:flex!important;flex-wrap:wrap!important}
-      .st-key-mobile_navigation [data-testid="stButtonGroup"] button{flex:1 1 auto!important;min-width:calc(33.333% - .38rem)!important;min-height:42px!important;padding:.46rem .72rem!important;border:1px solid rgba(244,210,139,.18)!important;border-radius:999px!important;background:rgba(255,255,255,.035)!important;color:#dce3e7!important;font-size:14px!important;font-weight:650!important;white-space:nowrap!important;box-shadow:none!important;transition:background .18s ease,border-color .18s ease,color .18s ease!important}
-      .st-key-mobile_navigation [data-testid="stButtonGroup"] button:hover{background:rgba(244,210,139,.09)!important;border-color:rgba(244,210,139,.42)!important;color:#fffaf0!important}
-      .st-key-mobile_navigation [data-testid="stButtonGroup"] button[aria-checked="true"]{background:linear-gradient(135deg,#e6b95f,#f4d28b)!important;border-color:#ffe4a5!important;color:#171109!important;box-shadow:0 6px 16px rgba(198,137,48,.24)!important}
-      .st-key-mobile_navigation [data-testid="stButtonGroup"] button p{color:inherit!important;font-size:14px!important;line-height:1.15!important}
+      .st-key-mobile_navigation{display:block!important;position:sticky;top:.45rem;z-index:60;margin:0 0 .8rem;padding:0;background:transparent;filter:drop-shadow(0 10px 22px rgba(0,0,0,.28))}
+      .st-key-mobile_navigation [data-baseweb="select"]>div{min-height:50px!important;padding-left:1.35rem!important;border:1px solid rgba(244,210,139,.42)!important;border-radius:14px!important;background:radial-gradient(circle at 1rem 50%,#f4d28b 0 4px,transparent 5px),linear-gradient(135deg,rgba(4,14,23,.98),rgba(12,30,42,.97))!important;color:#fffaf0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important}
+      .st-key-mobile_navigation [data-baseweb="select"] input,.st-key-mobile_navigation [data-baseweb="select"] span,.st-key-mobile_navigation [data-baseweb="select"] div{color:#fffaf0!important;-webkit-text-fill-color:#fffaf0!important;font-size:15px!important;font-weight:650!important}
+      .st-key-mobile_navigation [data-baseweb="select"] svg{fill:#f4d28b!important;color:#f4d28b!important}
+      [data-baseweb="popover"] [role="listbox"]{padding:.35rem!important;border:1px solid rgba(244,210,139,.34)!important;border-radius:12px!important;background:#07141f!important;box-shadow:0 18px 40px rgba(0,0,0,.45)!important}
+      [data-baseweb="popover"] [role="option"]{min-height:44px!important;border-radius:8px!important;background:transparent!important;color:#dce3e7!important;font-size:15px!important;font-weight:600!important}
+      [data-baseweb="popover"] [role="option"]:hover{background:rgba(244,210,139,.09)!important;color:#fffaf0!important}
+      [data-baseweb="popover"] [role="option"][aria-selected="true"]{background:rgba(244,210,139,.16)!important;color:#f4d28b!important}
       h1{font-size:clamp(1.75rem,9vw,2.25rem)!important;line-height:1.25;letter-spacing:.025em}
       h2{font-size:1.35rem!important}
       p,label,.stMarkdown,.stCaption{font-size:16px;line-height:1.65}
@@ -417,14 +418,10 @@ def render_research() -> None:
 
 
 NAVIGATION_OPTIONS = ["风险偏好问卷","我的配置方案","见微问答","历史参考方案","方法说明"]
-MOBILE_NAVIGATION_OPTIONS = ["问卷", "方案", "见微", "历史", "方法"]
-MOBILE_TO_NAVIGATION = dict(zip(MOBILE_NAVIGATION_OPTIONS, NAVIGATION_OPTIONS))
-NAVIGATION_TO_MOBILE = {value: key for key, value in MOBILE_TO_NAVIGATION.items()}
 
 
 def sync_navigation(source_key: str) -> None:
-    selected = st.session_state[source_key]
-    st.session_state.navigation_choice = MOBILE_TO_NAVIGATION.get(selected, selected)
+    st.session_state.navigation_choice = st.session_state[source_key]
 
 
 with st.sidebar:
@@ -443,16 +440,15 @@ with st.sidebar:
     st.markdown(f'<div class="side-meta"><span class="status-chip">{state_names.get(latest_state,latest_state)}市场状态</span><br>根据你的回答计算<br>{"见微在线服务已配置" if api_ready else "见微离线说明模式"}<br><br>历史参考 · 不构成投资建议</div>',unsafe_allow_html=True)
 
 with st.container(key="mobile_navigation"):
-    mobile_choice = NAVIGATION_TO_MOBILE[st.session_state.navigation_choice]
-    if st.session_state.get("mobile_navigation_pills") != mobile_choice:
-        st.session_state.mobile_navigation_pills = mobile_choice
-    st.pills(
+    if st.session_state.get("mobile_navigation_select") != st.session_state.navigation_choice:
+        st.session_state.mobile_navigation_select = st.session_state.navigation_choice
+    st.selectbox(
         "页面切换",
-        MOBILE_NAVIGATION_OPTIONS,
-        key="mobile_navigation_pills",
+        NAVIGATION_OPTIONS,
+        key="mobile_navigation_select",
         label_visibility="collapsed",
         on_change=sync_navigation,
-        args=("mobile_navigation_pills",),
+        args=("mobile_navigation_select",),
     )
 
 navigation = st.session_state.navigation_choice
