@@ -16,15 +16,25 @@ python -m streamlit run app.py
 
 ## 接入OpenAI兼容API
 
-在服务器环境中设置：
+本地运行时可设置环境变量；部署到Streamlit Community Cloud时，推荐在应用的
+**Settings → Secrets** 中填写：
 
-```text
-LLM_API_BASE=https://provider.example/v1
-LLM_API_KEY=your-secret
-LLM_MODEL=model-name
+```toml
+LLM_API_BASE="https://provider.example/v1"
+LLM_API_KEY="your-secret"
+LLM_MODEL="model-name"
+LLM_API_PATH="/chat/completions"
+LLM_TRUST_ENV_PROXY=false
 ```
 
-不要把真实密钥写入代码、`.env.example`或提交附件。当前适配器调用`/chat/completions`，要求模型返回JSON；返回结果会再次校验，模型不能修改量化权重。
+不要把真实密钥写入代码、`.env.example`或提交附件。配置读取同时兼容环境变量和
+`st.secrets`，环境变量优先。默认调用`/chat/completions`；如果供应商使用其他兼容路径，
+可通过`LLM_API_PATH`调整。在线接口超时、限流、证书错误或返回异常时，见微会自动切换
+为本地说明，不影响问卷、权重计算和历史参考页面。模型返回结果还会经过校验，不能修改
+量化权重。
+
+若原供应商的密钥或服务已到期，只需在Streamlit Secrets中替换
+`LLM_API_BASE`、`LLM_API_KEY`和`LLM_MODEL`，无需再次改代码。
 
 ## 测试
 
@@ -46,3 +56,4 @@ python -m unittest discover -s tests -v
 ## 声明
 
 本项目用于竞赛研究与方法展示，不构成个人投资建议。历史回测不保证未来表现。
+
