@@ -101,12 +101,12 @@ st.markdown(
       [data-testid="stSidebar"]>div:first-child{padding:1.1rem .85rem}
       .block-container,[data-testid="stMainBlockContainer"]{padding:1rem 1rem 5.5rem!important;margin-left:.35rem!important}
       .st-key-mobile_navigation{display:block!important;position:sticky;top:.45rem;z-index:60;margin:0 0 .8rem;padding:.48rem;border:1px solid rgba(244,210,139,.28);border-radius:16px;background:linear-gradient(135deg,rgba(4,14,23,.96),rgba(9,25,36,.94));backdrop-filter:blur(16px);box-shadow:0 12px 30px rgba(0,0,0,.3)}
-      .st-key-mobile_navigation [data-testid="stPills"]{margin:0!important}
-      .st-key-mobile_navigation [data-testid="stPills"]>div{gap:.38rem!important;display:flex!important;flex-wrap:wrap!important}
-      .st-key-mobile_navigation [data-testid="stPills"] button{flex:1 1 auto!important;min-width:calc(33.333% - .38rem)!important;min-height:42px!important;padding:.46rem .72rem!important;border:1px solid rgba(244,210,139,.18)!important;border-radius:999px!important;background:rgba(255,255,255,.035)!important;color:#dce3e7!important;font-size:14px!important;font-weight:650!important;white-space:nowrap!important;box-shadow:none!important;transition:background .18s ease,border-color .18s ease,color .18s ease!important}
-      .st-key-mobile_navigation [data-testid="stPills"] button:hover{background:rgba(244,210,139,.09)!important;border-color:rgba(244,210,139,.42)!important;color:#fffaf0!important}
-      .st-key-mobile_navigation [data-testid="stPills"] button[aria-pressed="true"]{background:linear-gradient(135deg,#e6b95f,#f4d28b)!important;border-color:#ffe4a5!important;color:#171109!important;box-shadow:0 6px 16px rgba(198,137,48,.24)!important}
-      .st-key-mobile_navigation [data-testid="stPills"] button p{color:inherit!important;font-size:14px!important;line-height:1.15!important}
+      .st-key-mobile_navigation [data-testid="stButtonGroup"]{margin:0!important}
+      .st-key-mobile_navigation [data-testid="stButtonGroup"] [data-baseweb="button-group"]{gap:.38rem!important;display:flex!important;flex-wrap:wrap!important}
+      .st-key-mobile_navigation [data-testid="stButtonGroup"] button{flex:1 1 auto!important;min-width:calc(33.333% - .38rem)!important;min-height:42px!important;padding:.46rem .72rem!important;border:1px solid rgba(244,210,139,.18)!important;border-radius:999px!important;background:rgba(255,255,255,.035)!important;color:#dce3e7!important;font-size:14px!important;font-weight:650!important;white-space:nowrap!important;box-shadow:none!important;transition:background .18s ease,border-color .18s ease,color .18s ease!important}
+      .st-key-mobile_navigation [data-testid="stButtonGroup"] button:hover{background:rgba(244,210,139,.09)!important;border-color:rgba(244,210,139,.42)!important;color:#fffaf0!important}
+      .st-key-mobile_navigation [data-testid="stButtonGroup"] button[aria-checked="true"]{background:linear-gradient(135deg,#e6b95f,#f4d28b)!important;border-color:#ffe4a5!important;color:#171109!important;box-shadow:0 6px 16px rgba(198,137,48,.24)!important}
+      .st-key-mobile_navigation [data-testid="stButtonGroup"] button p{color:inherit!important;font-size:14px!important;line-height:1.15!important}
       h1{font-size:clamp(1.75rem,9vw,2.25rem)!important;line-height:1.25;letter-spacing:.025em}
       h2{font-size:1.35rem!important}
       p,label,.stMarkdown,.stCaption{font-size:16px;line-height:1.65}
