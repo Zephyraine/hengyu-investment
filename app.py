@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import base64
 from html import escape
 from pathlib import Path
@@ -9,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from services.data_service import load_dashboard_data
-from services.llm_client import generate_advice, generate_chat_answer
+from services.llm_client import generate_advice, generate_chat_answer, is_llm_configured
 from services.portfolio_engine import calculate_personalized_plan
 
 ROOT = Path(__file__).resolve().parent
@@ -27,7 +26,7 @@ BITCOIN_ICON_URI = data_uri(ASSETS / "bitcoin-coin.png", "image/png")
 JIANWEI_AVATAR_PATH = ASSETS / "jianwei-leaf-balance-mark.png"
 JIANWEI_AVATAR_URI = data_uri(JIANWEI_AVATAR_PATH, "image/png")
 
-st.set_page_config(page_title="衡域｜见微投资问答", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="衡域｜见微投资问答", layout="wide", initial_sidebar_state="auto")
 
 st.markdown(
     """
@@ -39,7 +38,7 @@ st.markdown(
     .stApp:before{content:"";position:fixed;inset:0;pointer-events:none;background:rgba(0,7,13,.30);z-index:0}
     [data-testid="stAppViewContainer"]{background:transparent!important}
     [data-testid="stAppViewContainer"]>.main,[data-testid="stSidebar"]{position:relative;z-index:1;background:transparent}
-    [data-testid="stSidebar"]{min-width:205px;max-width:205px;background:rgba(3,11,18,.94);border-right:1px solid rgba(237,199,119,.20);backdrop-filter:blur(18px);transform:none!important;z-index:100!important}
+    [data-testid="stSidebar"]{min-width:205px;max-width:205px;background:rgba(3,11,18,.94);border-right:1px solid rgba(237,199,119,.20);backdrop-filter:blur(18px);z-index:100!important}
     [data-testid="stSidebar"]>div:first-child{padding:1.65rem 1rem}[data-testid="stSidebarCollapseButton"]{display:none}
     .block-container{max-width:none;padding:2.1rem 2.25rem 1.5rem}
     h1,h2,h3{font-family:"STSong","Songti SC","Noto Serif CJK SC",serif;color:var(--text)}
@@ -82,8 +81,52 @@ st.markdown(
     .assistant-profile{display:flex;align-items:center;gap:1.35rem;margin:.35rem 0 1.2rem;padding:.85rem 1.2rem;border:1px solid rgba(205,255,142,.26);border-radius:16px;background:linear-gradient(100deg,rgba(205,255,142,.09),rgba(84,231,181,.045))}.assistant-avatar{width:160px;height:160px;object-fit:contain;object-position:center;border-radius:20px;filter:drop-shadow(0 12px 18px rgba(0,0,0,.28));image-rendering:pixelated}.assistant-profile-name{font-family:"STSong","Songti SC",serif;color:#fffaf0;font-size:1.55rem;font-weight:700;letter-spacing:.08em}.assistant-profile-role{color:#d8dee3;font-size:16px;font-weight:500;margin-top:.35rem;line-height:1.65}
     .interpret-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:.8rem}.interpret-item{padding:1rem 1.1rem;border:1px solid rgba(237,199,119,.18);border-radius:10px;background:rgba(255,255,255,.025)}.interpret-item b{display:block;color:var(--gold);font-size:18px;margin-bottom:.45rem}.interpret-item div{color:#e0e5e9;font-size:17px;font-weight:500;line-height:1.75}
     .method-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-top:.8rem}.method-item{background:rgba(5,14,23,.76);border:1px solid var(--line);padding:1.05rem;border-radius:10px}.method-item b{color:var(--gold);display:block;margin-bottom:.35rem}.method-item span{color:#b8c1c8;font-size:16px;line-height:1.7}
-    @media(max-width:1200px){.engine-title{font-size:1.12rem}.engine-role{font-size:.62rem}.block-container{padding:1.7rem 1.5rem}.page-subtitle{margin-bottom:1rem}}
-    @media(max-width:920px){[data-testid="stSidebar"]{min-width:175px;max-width:175px}.block-container{padding:1.25rem 1rem}.stepper{grid-template-columns:repeat(5,minmax(70px,1fr));overflow-x:auto}.side-meta{display:none}.interpret-grid{grid-template-columns:1fr}.product-masthead{align-items:flex-start;gap:.6rem}.assistant-name{text-align:right}}
+    .st-key-mobile_navigation{display:none}
+    @media(max-width:1200px){.engine-title{font-size:1.2rem}.engine-role{font-size:.78rem}.block-container{padding:1.7rem 1.5rem}.page-subtitle{margin-bottom:1rem}}
+    @media(max-width:920px){[data-testid="stSidebar"]{min-width:175px;max-width:175px}.block-container{padding:1.25rem 1rem}.stepper{grid-template-columns:repeat(5,minmax(82px,1fr));overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:.45rem}.step{scroll-snap-align:start}.side-meta{display:none}.interpret-grid{grid-template-columns:1fr}.product-masthead{align-items:flex-start;gap:.6rem}.assistant-name{text-align:right}.method-grid{grid-template-columns:1fr}}
+    @media(max-width:700px){
+      html,body,[class*="css"]{font-size:16px}
+      .stApp{background-attachment:scroll;background-position:60% bottom}
+      [data-testid="stHeader"]{display:block!important;background:transparent!important}
+      [data-testid="stSidebar"]{min-width:min(86vw,320px)!important;max-width:min(86vw,320px)!important;width:min(86vw,320px)!important}
+      [data-testid="stSidebarCollapseButton"]{display:flex!important}
+      [data-testid="collapsedControl"],[data-testid="stSidebarCollapsedControl"]{display:flex!important;position:fixed!important;top:.55rem!important;left:.55rem!important;z-index:1000!important}
+      [data-testid="stSidebarCollapsedControl"] button{background:rgba(3,11,18,.88)!important;border:1px solid rgba(244,210,139,.34)!important;color:var(--gold)!important;border-radius:9px!important}
+      [data-testid="stSidebar"]>div:first-child{padding:1.1rem .85rem}
+      .block-container,[data-testid="stMainBlockContainer"]{padding:1rem 1rem 5.5rem!important;margin-left:.35rem!important}
+      .st-key-mobile_navigation{display:block!important;position:sticky;top:.45rem;z-index:60;margin:0 0 .8rem;padding:.5rem .6rem;border:1px solid rgba(244,210,139,.3);border-radius:12px;background:rgba(3,11,18,.94);backdrop-filter:blur(14px);box-shadow:0 10px 28px rgba(0,0,0,.26)}
+      .st-key-mobile_navigation label{font-size:13px!important;color:var(--gold)!important}
+      .st-key-mobile_navigation [data-baseweb="select"]>div{min-height:46px!important}
+      h1{font-size:clamp(1.75rem,9vw,2.25rem)!important;line-height:1.25;letter-spacing:.025em}
+      h2{font-size:1.35rem!important}
+      p,label,.stMarkdown,.stCaption{font-size:16px;line-height:1.65}
+      .product-masthead{display:grid;grid-template-columns:1fr;gap:.25rem;margin-bottom:1rem}
+      .product-name{font-size:1.35rem}.assistant-name{text-align:left;font-size:.92rem}
+      .topline{align-items:flex-start;flex-wrap:wrap;gap:.25rem .75rem}.eyebrow,.date{font-size:13px}
+      .page-subtitle{font-size:16px;line-height:1.65;margin-bottom:1rem}
+      [data-testid="stVerticalBlockBorderWrapper"]{border-radius:12px!important;box-shadow:0 12px 34px rgba(0,0,0,.3)}
+      [data-testid="stVerticalBlockBorderWrapper"]>div{padding:.05rem .15rem}
+      [data-testid="stHorizontalBlock"]{flex-direction:column!important;gap:.75rem!important}
+      [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{width:100%!important;flex:1 1 auto!important;min-width:0!important}
+      .card-heading,.engine-title{font-size:1.28rem}.card-intro{font-size:15px}
+      .engine-head{display:grid;grid-template-columns:1fr;gap:.25rem}.engine-role{text-align:left;white-space:normal;font-size:13px}
+      .stepper{margin:.65rem 0 1rem;gap:.2rem}.step{font-size:13px}.step-dot{width:28px;height:28px;margin-bottom:.38rem}.step:before{top:14px}
+      .question-title{font-size:1.5rem}.question-help{font-size:15px;margin-bottom:.85rem}
+      [data-testid="stButton"] button{min-height:48px;font-size:16px}
+      .metric-row{grid-template-columns:1fr}.metric-box+.metric-box{border-left:0;border-top:1px solid var(--line)}
+      .interpret-item{padding:.85rem}.interpret-item b{font-size:17px}.interpret-item div{font-size:16px}
+      .assistant-profile{align-items:center;gap:.8rem;padding:.7rem;margin-bottom:.85rem}.assistant-avatar{width:92px;height:92px;border-radius:14px}.assistant-profile-name{font-size:1.3rem}.assistant-profile-role{font-size:14px}
+      [data-testid="stVerticalBlockBorderWrapper"]:has([data-testid="stChatInput"]){min-height:auto;padding:.55rem .35rem .85rem!important}
+      [data-testid="stChatMessage"]{font-size:16px;padding:.75rem .45rem;gap:.65rem}
+      [data-testid="stChatMessageAvatarCustom"]{width:48px!important;height:48px!important;min-width:48px!important;flex-basis:48px!important}
+      [data-testid="stChatMessageAvatarCustom"] img{width:44px!important;height:44px!important}
+      [data-testid="stChatInput"] textarea{font-size:16px!important;min-height:64px!important;padding:.75rem 3rem .75rem .75rem!important}
+      [data-testid="stChatInput"] button{width:42px!important;height:42px!important}
+      [data-testid="stPlotlyChart"]{overflow:hidden}
+      .result-banner{font-size:15px;padding:.8rem .85rem}
+      .method-item{padding:.85rem}.method-item span{font-size:15px}
+    }
+    @media(max-width:390px){.block-container{padding-left:.9rem!important;padding-right:.9rem!important}.assistant-avatar{width:76px;height:76px}.stepper{grid-template-columns:repeat(5,minmax(74px,1fr))}.asset-icon{width:58px;height:52px}.asset-weight{font-size:1.45rem}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -105,7 +148,7 @@ allocation = data["allocation"]
 latest_state = allocation["market_state_at_signal"]
 state_names = {"normal": "正常", "macro_stress": "宏观压力", "crypto_stress": "加密压力"}
 
-DEFAULTS = {"assessment_step":0,"answer_horizon_years":7,"answer_max_drawdown_pct":20,"answer_liquidity_need":"低","answer_loss_reaction":"继续持有","answer_bitcoin_acceptance":66,"investment_amount":100000.0,"current_gold":0.0,"current_bitcoin":0.0,"chat_messages":[]}
+DEFAULTS = {"assessment_step":0,"answer_horizon_years":7,"answer_max_drawdown_pct":20,"answer_liquidity_need":"低","answer_loss_reaction":"继续持有","answer_bitcoin_acceptance":66,"investment_amount":100000.0,"current_gold":0.0,"current_bitcoin":0.0,"chat_messages":[],"navigation_choice":"风险偏好问卷"}
 for key, value in DEFAULTS.items():
     st.session_state.setdefault(key, value)
 
@@ -181,7 +224,7 @@ def render_result_panel(plan: dict) -> None:
 def render_interpretation(plan: dict) -> None:
     with st.container(border=True):
         st.markdown('<div class="card-heading">见微解读</div><div class="card-intro">从配置结论、配置理由、风险和下一步四个方面理解当前方案。</div>',unsafe_allow_html=True)
-        api_ready = bool(os.getenv("LLM_API_KEY") and os.getenv("LLM_API_BASE") and os.getenv("LLM_MODEL"))
+        api_ready = is_llm_configured()
         status_col, action_col = st.columns([1, 1])
         with status_col:
             st.markdown(f'<span class="status-chip">{"见微在线" if api_ready else "见微离线说明模式"}</span>',unsafe_allow_html=True)
@@ -195,6 +238,8 @@ def render_interpretation(plan: dict) -> None:
                 st.error(f"见微暂时无法完成在线解读：{exc}")
         advice = st.session_state.get("latest_advice")
         if advice:
+            if advice.get("mode") == "offline_fallback":
+                st.warning("在线解释暂不可用，见微已自动切换为本地说明；配置计算不受影响。")
             reasons = "<br>".join(f"• {escape(str(item))}" for item in advice.get("reasons", []))
             warnings = "<br>".join(f"• {escape(str(item))}" for item in advice.get("warnings", []))
             st.markdown(
@@ -326,14 +371,43 @@ def render_research() -> None:
     st.warning("方法说明：个性化层不会让大模型自由给权重；确定性引擎只在三组正式配置校准锚点之间进行可审计的连续插值，并把结构化上下文交给见微解释。历史回测不保证未来表现。")
 
 
+NAVIGATION_OPTIONS = ["风险偏好问卷","我的配置方案","见微问答","历史参考方案","方法说明"]
+
+
+def sync_navigation(source_key: str) -> None:
+    st.session_state.navigation_choice = st.session_state[source_key]
+
+
 with st.sidebar:
     st.markdown('<div class="brand">衡域<span class="brand-sub">见微 · 投资问答</span></div>',unsafe_allow_html=True)
-    navigation = st.radio("导航",["风险偏好问卷","我的配置方案","见微问答","历史参考方案","方法说明"],label_visibility="collapsed")
-    api_ready = bool(os.getenv("LLM_API_KEY") and os.getenv("LLM_API_BASE") and os.getenv("LLM_MODEL"))
-    st.markdown(f'<div class="side-meta"><span class="status-chip">{state_names.get(latest_state,latest_state)}市场状态</span><br>根据你的回答计算<br>{"见微在线" if api_ready else "见微离线说明模式"}<br><br>历史参考 · 不构成投资建议</div>',unsafe_allow_html=True)
+    if st.session_state.get("sidebar_navigation") != st.session_state.navigation_choice:
+        st.session_state.sidebar_navigation = st.session_state.navigation_choice
+    st.radio(
+        "导航",
+        NAVIGATION_OPTIONS,
+        key="sidebar_navigation",
+        label_visibility="collapsed",
+        on_change=sync_navigation,
+        args=("sidebar_navigation",),
+    )
+    api_ready = is_llm_configured()
+    st.markdown(f'<div class="side-meta"><span class="status-chip">{state_names.get(latest_state,latest_state)}市场状态</span><br>根据你的回答计算<br>{"见微在线服务已配置" if api_ready else "见微离线说明模式"}<br><br>历史参考 · 不构成投资建议</div>',unsafe_allow_html=True)
 
+with st.container(key="mobile_navigation"):
+    if st.session_state.get("mobile_navigation_select") != st.session_state.navigation_choice:
+        st.session_state.mobile_navigation_select = st.session_state.navigation_choice
+    st.selectbox(
+        "当前页面",
+        NAVIGATION_OPTIONS,
+        key="mobile_navigation_select",
+        on_change=sync_navigation,
+        args=("mobile_navigation_select",),
+    )
+
+navigation = st.session_state.navigation_choice
 if navigation == "风险偏好问卷": render_assessment()
 elif navigation == "我的配置方案": render_plan()
 elif navigation == "见微问答": render_chat()
 elif navigation == "历史参考方案": render_history()
 else: render_research()
+
