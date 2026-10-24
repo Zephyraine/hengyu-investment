@@ -58,10 +58,10 @@ def _chat_endpoint(base_url: str, api_path: str) -> str:
 
 def _session() -> requests.Session:
     retry = Retry(
-        total=2,
-        connect=2,
-        read=2,
-        backoff_factor=0.6,
+        total=1,
+        connect=0,
+        read=0,
+        backoff_factor=0.3,
         status_forcelist=(429, 500, 502, 503, 504),
         allowed_methods=frozenset({"POST"}),
         respect_retry_after_header=True,
@@ -88,7 +88,9 @@ def _post_chat(config: dict[str, str], payload: dict) -> dict:
                 "Content-Type": "application/json",
             },
             json=payload,
-            timeout=(8, 45),
+            # Keep the public demo responsive when a configured provider has
+            # expired or is unreachable. The caller falls back to local copy.
+            timeout=(4, 12),
         )
         response.raise_for_status()
         body = response.json()
