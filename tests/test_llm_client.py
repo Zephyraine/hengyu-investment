@@ -30,6 +30,9 @@ class LlmClientTests(unittest.TestCase):
         )
         self.assertIn("70.0%", answer)
         self.assertIn("30.0%", answer)
+        self.assertIn("直接结论", answer)
+        self.assertIn("主要风险", answer)
+        self.assertIn("下一步", answer)
 
     @patch.dict(os.environ, {"LLM_API_KEY": "", "LLM_API_BASE": "", "LLM_MODEL": ""})
     def test_offline_chat_explains_drawdown_without_guarantee(self):
