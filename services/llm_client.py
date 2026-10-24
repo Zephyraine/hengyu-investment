@@ -3,13 +3,98 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Any
+from urllib.parse import urlparse
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from services.response_guard import validate_advisor_payload
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _read_setting(name: str, default: str = "") -> str:
+    """Read deployment settings from env first, then Streamlit Cloud secrets."""
+    env_value = os.getenv(name, "").strip()
+    if env_value:
+        return env_value
+    try:
+        import streamlit as st
+
+        value: Any = st.secrets.get(name, default)
+    except Exception:
+        value = default
+    return str(value).strip() if value is not None else default
+
+
+def get_llm_config() -> dict[str, str]:
+    return {
+        "api_key": _read_setting("LLM_API_KEY"),
+        "base_url": _read_setting("LLM_API_BASE").rstrip("/"),
+        "model": _read_setting("LLM_MODEL"),
+        "api_path": _read_setting("LLM_API_PATH", "/chat/completions"),
+    }
+
+
+def is_llm_configured(config: dict[str, str] | None = None) -> bool:
+    config = config or get_llm_config()
+    return bool(config["api_key"] and config["base_url"] and config["model"])
+
+
+def _chat_endpoint(base_url: str, api_path: str) -> str:
+    parsed = urlparse(base_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError("LLM_API_BASE 必须是有效的 http(s) 地址。")
+    if base_url.endswith("/chat/completions"):
+        return base_url
+    path = api_path.strip() or "/chat/completions"
+    if not path.startswith("/"):
+        path = f"/{path}"
+    return f"{base_url}{path}"
+
+
+def _session() -> requests.Session:
+    retry = Retry(
+        total=2,
+        connect=2,
+        read=2,
+        backoff_factor=0.6,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"POST"}),
+        respect_retry_after_header=True,
+    )
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    session.mount("http://", HTTPAdapter(max_retries=retry))
+    # Avoid leaking a developer machine's localhost proxy into production calls.
+    session.trust_env = _read_setting("LLM_TRUST_ENV_PROXY", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    return session
+
+
+def _post_chat(config: dict[str, str], payload: dict) -> dict:
+    endpoint = _chat_endpoint(config["base_url"], config["api_path"])
+    with _session() as session:
+        response = session.post(
+            endpoint,
+            headers={
+                "Authorization": f"Bearer {config['api_key']}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=(8, 45),
+        )
+        response.raise_for_status()
+        body = response.json()
+    if not isinstance(body, dict) or not body.get("choices"):
+        raise ValueError("在线模型返回格式不完整。")
+    return body
 
 
 def _offline_payload(plan: dict, market_state: str) -> dict:
@@ -41,10 +126,8 @@ def _offline_payload(plan: dict, market_state: str) -> dict:
 
 
 def generate_advice(plan: dict, context: dict) -> dict:
-    api_key = os.getenv("LLM_API_KEY", "").strip()
-    base_url = os.getenv("LLM_API_BASE", "").strip().rstrip("/")
-    model = os.getenv("LLM_MODEL", "").strip()
-    if not (api_key and base_url and model):
+    config = get_llm_config()
+    if not is_llm_configured(config):
         return _offline_payload(plan, context["market_state"])
 
     system_prompt = (ROOT / "prompts" / "advisor_system_prompt.md").read_text(encoding="utf-8")
@@ -53,22 +136,32 @@ def generate_advice(plan: dict, context: dict) -> dict:
         "market_context": context,
         "instruction": "Return only one valid JSON object matching the required schema.",
     }
-    response = requests.post(
-        f"{base_url}/chat/completions",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={
-            "model": model,
-            "temperature": 0.2,
-            "response_format": {"type": "json_object"},
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
-            ],
-        },
-        timeout=30,
-    )
-    response.raise_for_status()
-    payload = json.loads(response.json()["choices"][0]["message"]["content"])
+    request_payload = {
+        "model": config["model"],
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
+        ],
+    }
+    try:
+        try:
+            body = _post_chat(config, request_payload)
+        except requests.HTTPError as exc:
+            # Some OpenAI-compatible gateways do not implement response_format.
+            status = exc.response.status_code if exc.response is not None else None
+            if status not in {400, 404, 422}:
+                raise
+            compatible_payload = dict(request_payload)
+            compatible_payload.pop("response_format", None)
+            body = _post_chat(config, compatible_payload)
+        payload = json.loads(body["choices"][0]["message"]["content"])
+    except (requests.RequestException, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        fallback = _offline_payload(plan, context["market_state"])
+        fallback["mode"] = "offline_fallback"
+        fallback["guard_message"] = "在线解释暂不可用，已自动切换为本地说明。"
+        return fallback
     valid, reason = validate_advisor_payload(payload, plan)
     if not valid:
         fallback = _offline_payload(plan, context["market_state"])
@@ -108,14 +201,12 @@ def _offline_chat_answer(question: str, plan: dict, context: dict) -> str:
 
 def generate_chat_answer(messages: list[dict], plan: dict, context: dict) -> str:
     """Answer a multi-turn question while keeping the calculated plan read-only."""
-    api_key = os.getenv("LLM_API_KEY", "").strip()
-    base_url = os.getenv("LLM_API_BASE", "").strip().rstrip("/")
-    model = os.getenv("LLM_MODEL", "").strip()
+    config = get_llm_config()
     latest_question = next(
         (item.get("content", "") for item in reversed(messages) if item.get("role") == "user"),
         "",
     )
-    if not (api_key and base_url and model):
+    if not is_llm_configured(config):
         return _offline_chat_answer(latest_question, plan, context)
 
     system_prompt = (ROOT / "prompts" / "chat_system_prompt.md").read_text(encoding="utf-8")
@@ -141,11 +232,14 @@ def generate_chat_answer(messages: list[dict], plan: dict, context: dict) -> str
         for item in messages[-20:]
         if item.get("role") in {"user", "assistant"} and item.get("content")
     )
-    response = requests.post(
-        f"{base_url}/chat/completions",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={"model": model, "temperature": 0.3, "messages": api_messages},
-        timeout=30,
-    )
-    response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"].strip()
+    try:
+        body = _post_chat(
+            config,
+            {"model": config["model"], "temperature": 0.3, "messages": api_messages},
+        )
+        return body["choices"][0]["message"]["content"].strip()
+    except (requests.RequestException, ValueError, KeyError, TypeError):
+        return "在线问答暂不可用，已切换为本地说明。\n\n" + _offline_chat_answer(
+            latest_question, plan, context
+        )
+
