@@ -85,9 +85,11 @@ st.markdown(
     .assistant-profile{display:flex;align-items:center;gap:1.35rem;margin:.35rem 0 1.2rem;padding:.85rem 1.2rem;border:1px solid rgba(205,255,142,.26);border-radius:16px;background:linear-gradient(100deg,rgba(205,255,142,.09),rgba(84,231,181,.045))}.assistant-avatar{width:160px;height:160px;object-fit:contain;object-position:center;border-radius:20px;filter:drop-shadow(0 12px 18px rgba(0,0,0,.28));image-rendering:pixelated}.assistant-profile-name{font-family:"STSong","Songti SC",serif;color:#fffaf0;font-size:1.55rem;font-weight:700;letter-spacing:.08em}.assistant-profile-role{color:#d8dee3;font-size:16px;font-weight:500;margin-top:.35rem;line-height:1.65}
     .interpret-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:.8rem}.interpret-item{padding:1rem 1.1rem;border:1px solid rgba(237,199,119,.18);border-radius:10px;background:rgba(255,255,255,.025)}.interpret-item b{display:block;color:var(--gold);font-size:18px;margin-bottom:.45rem}.interpret-item div{color:#e0e5e9;font-size:17px;font-weight:500;line-height:1.75}
     .method-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin-top:.8rem}.method-item{background:rgba(5,14,23,.76);border:1px solid var(--line);padding:1.05rem;border-radius:10px}.method-item b{color:var(--gold);display:block;margin-bottom:.35rem}.method-item span{color:#b8c1c8;font-size:16px;line-height:1.7}
+    .capability-tags{display:flex;flex-wrap:wrap;gap:.45rem;margin:.7rem 0 1rem}.capability-tag{padding:.32rem .62rem;border:1px solid rgba(84,231,181,.28);border-radius:999px;background:rgba(84,231,181,.07);color:#bcebdc;font-size:14px;font-weight:600}
+    .agent-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin:1rem 0 1.4rem}.agent-step{position:relative;padding:1rem;border:1px solid rgba(237,199,119,.24);border-radius:10px;background:rgba(5,14,23,.8)}.agent-step:not(:last-child):after{content:"→";position:absolute;right:-.58rem;top:50%;transform:translateY(-50%);z-index:2;color:var(--gold);font-size:1.1rem}.agent-step em{display:block;color:var(--emerald);font-size:13px;font-style:normal;font-weight:700;letter-spacing:.08em}.agent-step b{display:block;color:#fffaf0;margin:.25rem 0}.agent-step span{color:#b8c1c8;font-size:15px;line-height:1.55}.evidence-tag{display:inline-block;margin-top:.55rem;color:#d7bd83;font-size:13px}
     .st-key-mobile_navigation{display:none}
     @media(max-width:1200px){.engine-title{font-size:1.2rem}.engine-role{font-size:.78rem}.block-container{padding:1.7rem 1.5rem}.page-subtitle{margin-bottom:1rem}}
-    @media(max-width:920px){[data-testid="stSidebar"]{min-width:175px;max-width:175px}.block-container{padding:1.25rem 1rem}.stepper{grid-template-columns:repeat(5,minmax(82px,1fr));overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:.45rem}.step{scroll-snap-align:start}.side-meta{display:none}.interpret-grid{grid-template-columns:1fr}.product-masthead{align-items:flex-start;gap:.6rem}.assistant-name{text-align:right}.method-grid{grid-template-columns:1fr}}
+    @media(max-width:920px){[data-testid="stSidebar"]{min-width:175px;max-width:175px}.block-container{padding:1.25rem 1rem}.stepper{grid-template-columns:repeat(5,minmax(82px,1fr));overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:.45rem}.step{scroll-snap-align:start}.side-meta{display:none}.interpret-grid{grid-template-columns:1fr}.product-masthead{align-items:flex-start;gap:.6rem}.assistant-name{text-align:right}.method-grid{grid-template-columns:1fr}.agent-flow{grid-template-columns:repeat(2,minmax(0,1fr))}.agent-step:nth-child(2):after{display:none}}
     @media(max-width:700px){
       html,body,[class*="css"]{font-size:16px}
       .stApp{background-attachment:scroll;background-position:60% bottom}
@@ -129,6 +131,7 @@ st.markdown(
       [data-testid="stPlotlyChart"]{overflow:hidden}
       .result-banner{font-size:15px;padding:.8rem .85rem}
       .method-item{padding:.85rem}.method-item span{font-size:15px}
+      .agent-flow{grid-template-columns:1fr}.agent-step:not(:last-child):after{content:"↓";right:auto;left:50%;top:auto;bottom:-.82rem;transform:translateX(-50%)}.capability-tag{font-size:13px}
     }
     @media(max-width:390px){.block-container{padding-left:.9rem!important;padding-right:.9rem!important}.assistant-avatar{width:76px;height:76px}.stepper{grid-template-columns:repeat(5,minmax(74px,1fr))}.asset-icon{width:58px;height:52px}.asset-weight{font-size:1.45rem}}
     </style>
@@ -331,6 +334,7 @@ def render_chat() -> None:
             f'<div class="assistant-profile"><img class="assistant-avatar" src="{JIANWEI_AVATAR_URI}" alt="见微助手形象"><div><div class="assistant-profile-name">见微</div><div class="assistant-profile-role">配置与风险问答</div></div></div>',
             unsafe_allow_html=True,
         )
+        st.markdown('<div class="capability-tags"><span class="capability-tag">绑定当前方案</span><span class="capability-tag">配置数字受控</span><span class="capability-tag">支持连续追问</span><span class="capability-tag">异常自动降级</span></div>',unsafe_allow_html=True)
         st.markdown(
             f'<div class="result-banner">黄金 <b>{plan["gold_weight"]:.1%}</b> · 比特币 <b>{plan["bitcoin_weight"]:.1%}</b> · 风险评分 <b>{plan["risk_score"]:.1f}</b> / 100</div>',
             unsafe_allow_html=True,
@@ -373,6 +377,39 @@ def render_research() -> None:
     q1 = frozen["Q1"]
     st.markdown(f'<div class="method-grid"><div class="method-item"><b>Q1 · 风险画像</b><span>黄金年化波动 {q1["gold"]["annualized_volatility"]:.1%}；比特币年化波动 {q1["bitcoin"]["annualized_volatility"]:.1%}。两类资产并非同一风险量级。</span></div><div class="method-item"><b>Q2 · 因子检验</b><span>滚动关联用于描述环境变化；FDR校正后不宣称稳定因果或价格预测能力。</span></div><div class="method-item"><b>Q3 · 状态识别</b><span>正常、宏观压力、加密压力三种状态只用于风险提示，不覆盖配置引擎权重。</span></div><div class="method-item"><b>Q4 · 走步回测</b><span>252日风险估计、21个共同报价日检查、2个百分点缓冲、单边10bp交易成本。</span></div></div>',unsafe_allow_html=True)
     st.warning("方法说明：个性化层不会让大模型自由给权重；确定性引擎只在三组正式配置校准锚点之间进行可审计的连续插值，并把结构化上下文交给见微解释。历史回测不保证未来表现。")
+    st.markdown("## 见微如何形成回答")
+    st.markdown(
+        '<div class="agent-flow">'
+        '<div class="agent-step"><em>01 · INPUT</em><b>风险问卷</b><span>收集期限、回撤、流动性、亏损反应与比特币接受度。</span></div>'
+        '<div class="agent-step"><em>02 · ENGINE</em><b>规则计算</b><span>量化引擎先确定风险评分与配置比例。</span></div>'
+        '<div class="agent-step"><em>03 · EXPLAIN</em><b>见微解释</b><span>注入当前方案，生成与用户相关的回答。</span></div>'
+        '<div class="agent-step"><em>04 · GUARD</em><b>一致性检查</b><span>拦截改写权重、收益承诺与不完整回答。</span></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("## 与通用问答的区别")
+    st.markdown(
+        '<div class="method-grid">'
+        '<div class="method-item"><b>权重不由大模型决定</b><span>模型只解释量化结果，不能临场生成或修改配置比例。</span><small class="evidence-tag">可验证：权重一致性测试</small></div>'
+        '<div class="method-item"><b>回答绑定当前方案</b><span>每轮注入当前比例、风险评分、金额与市场状态。</span><small class="evidence-tag">可验证：修改问卷后再次提问</small></div>'
+        '<div class="method-item"><b>支持连续追问</b><span>保留最近对话，让追问沿用上一轮语境。</span><small class="evidence-tag">可验证：连续提出关联问题</small></div>'
+        '<div class="method-item"><b>接口异常仍可使用</b><span>在线模型失效时切换到本地说明，配置计算不受影响。</span><small class="evidence-tag">可验证：异常降级测试</small></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("## 提示词设计过程")
+    st.markdown(
+        '<div class="method-grid">'
+        '<div class="method-item"><b>1 · 身份设定</b><span>固定为配置解释助手，不扮演价格预测者。</span></div>'
+        '<div class="method-item"><b>2 · 上下文注入</b><span>传入当前方案和问卷结果，避免泛泛而谈。</span></div>'
+        '<div class="method-item"><b>3 · 任务分流</b><span>区分方案解释、概念说明、风险与调仓问题。</span></div>'
+        '<div class="method-item"><b>4 · 回答结构</b><span>简单问题简答；方案问题覆盖结论、依据、风险与下一步。</span></div>'
+        '<div class="method-item"><b>5 · 风险边界</b><span>禁止预测短期涨跌、承诺收益或把回撤写成保证。</span></div>'
+        '<div class="method-item"><b>6 · 异常降级</b><span>接口超时后使用审核过的本地回答。</span></div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+    st.caption("设计目标：不是让模型替代量化规则，而是让固定结果更容易理解、核对和追问。")
 
 
 NAVIGATION_OPTIONS = ["风险偏好问卷","我的配置方案","见微问答","历史参考方案","方法说明"]
