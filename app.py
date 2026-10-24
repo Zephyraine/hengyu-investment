@@ -190,23 +190,23 @@ def prepare_widget(widget_key: str, answer_key: str) -> None:
 
 def render_question(step: int) -> None:
     if step == 0:
-        st.markdown('<div class="question-kicker">投资目标</div><div class="question-title">你的计划投资期限</div><div class="question-help">更长的持有期通常意味着更强的波动消化能力。</div>',unsafe_allow_html=True)
+        st.markdown('<div class="question-kicker">投资目标</div><div class="question-title">你的计划投资期限</div><div class="question-help">预计持有多久？</div>',unsafe_allow_html=True)
         prepare_widget("widget_horizon_years","answer_horizon_years")
         st.slider("计划投资期限（年）",1,10,key="widget_horizon_years",label_visibility="collapsed",on_change=sync_answer,args=("widget_horizon_years","answer_horizon_years"))
     elif step == 1:
-        st.markdown('<div class="question-kicker">风险承受度</div><div class="question-title">你能接受的回撤</div><div class="question-help">如果账户出现阶段性亏损，你认为自己最多能承受多大的跌幅？这不是系统承诺的亏损上限。</div>',unsafe_allow_html=True)
+        st.markdown('<div class="question-kicker">风险承受度</div><div class="question-title">你能接受的回撤</div><div class="question-help">你能承受多大幅度的阶段性亏损？</div>',unsafe_allow_html=True)
         prepare_widget("widget_max_drawdown_pct","answer_max_drawdown_pct")
         st.slider("你能接受的回撤（%）",10,50,step=5,key="widget_max_drawdown_pct",label_visibility="collapsed",on_change=sync_answer,args=("widget_max_drawdown_pct","answer_max_drawdown_pct"))
     elif step == 2:
-        st.markdown('<div class="question-kicker">资金约束</div><div class="question-title">流动性需求</div><div class="question-help">未来三年内，你动用这笔资金的可能性有多高？</div>',unsafe_allow_html=True)
+        st.markdown('<div class="question-kicker">资金约束</div><div class="question-title">流动性需求</div><div class="question-help">三年内需要用到这笔钱吗？</div>',unsafe_allow_html=True)
         prepare_widget("widget_liquidity_need","answer_liquidity_need")
         st.select_slider("流动性需求",["高","中","低"],key="widget_liquidity_need",label_visibility="collapsed",on_change=sync_answer,args=("widget_liquidity_need","answer_liquidity_need"))
     elif step == 3:
-        st.markdown('<div class="question-kicker">行为偏好</div><div class="question-title">面对短期亏损时</div><div class="question-help">如果组合短期下跌20%，你更可能怎么做？</div>',unsafe_allow_html=True)
+        st.markdown('<div class="question-kicker">行为偏好</div><div class="question-title">面对短期亏损时</div><div class="question-help">若短期下跌20%，你会怎么做？</div>',unsafe_allow_html=True)
         prepare_widget("widget_loss_reaction","answer_loss_reaction")
         st.radio("亏损反应",["立即清仓","明显减仓","继续持有","逢低增加"],key="widget_loss_reaction",horizontal=True,label_visibility="collapsed",on_change=sync_answer,args=("widget_loss_reaction","answer_loss_reaction"))
     else:
-        st.markdown('<div class="question-kicker">资产认知</div><div class="question-title">比特币接受度</div><div class="question-help">综合认知、经验与心理感受，你对比特币高波动的接受程度是多少？</div>',unsafe_allow_html=True)
+        st.markdown('<div class="question-kicker">资产认知</div><div class="question-title">比特币接受度</div><div class="question-help">你能接受多大的比特币波动？</div>',unsafe_allow_html=True)
         prepare_widget("widget_bitcoin_acceptance","answer_bitcoin_acceptance")
         st.slider("比特币接受度",0,100,key="widget_bitcoin_acceptance",label_visibility="collapsed",on_change=sync_answer,args=("widget_bitcoin_acceptance","answer_bitcoin_acceptance"))
 
@@ -222,12 +222,12 @@ def render_result_panel(plan: dict) -> None:
     fig.update_layout(height=255,margin={"l":12,"r":12,"t":8,"b":0},paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",showlegend=False,annotations=[{"text":f"风险评分<br><b>{plan['risk_score']:.0f}</b>","x":.5,"y":.5,"showarrow":False,"font":{"color":"#f4ead7","size":15}}])
     st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
     vol = plan["backtest_reference"]["annualized_volatility"]
-    st.markdown(f'<div class="metric-row"><div class="metric-box"><div class="metric-label">历史参考年化波动</div><div class="metric-value">{vol:.1%}</div><div class="tiny-bar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div><div class="metric-box"><div class="metric-label">你能接受的回撤</div><div class="metric-value">{st.session_state.answer_max_drawdown_pct}%</div><div class="tiny-bar"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div></div><div class="anchor-scale"><span>偏稳健</span><span>较均衡</span><span>偏进取</span></div><div class="logic-note">方案会根据你的五项回答，在历史参考方案之间计算当前比例。历史表现不代表未来结果。</div>',unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-row"><div class="metric-box"><div class="metric-label">历史参考年化波动</div><div class="metric-value">{vol:.1%}</div><div class="tiny-bar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div><div class="metric-box"><div class="metric-label">你能接受的回撤</div><div class="metric-value">{st.session_state.answer_max_drawdown_pct}%</div><div class="tiny-bar"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div></div><div class="anchor-scale"><span>偏稳健</span><span>较均衡</span><span>偏进取</span></div><div class="logic-note">按五项回答匹配历史方案，仅供参考。</div>',unsafe_allow_html=True)
 
 
 def render_interpretation(plan: dict) -> None:
     with st.container(border=True):
-        st.markdown('<div class="card-heading">见微解读</div><div class="card-intro">从配置结论、配置理由、风险和下一步四个方面理解当前方案。</div>',unsafe_allow_html=True)
+        st.markdown('<div class="card-heading">见微解读</div><div class="card-intro">查看结论、理由、风险和下一步。</div>',unsafe_allow_html=True)
         api_ready = is_llm_configured()
         status_col, action_col = st.columns([1, 1])
         with status_col:
@@ -236,7 +236,7 @@ def render_interpretation(plan: dict) -> None:
             generate = st.button("生成见微解读",use_container_width=True,type="primary")
         if generate:
             try:
-                with st.spinner("见微正在整理配置结论、理由、风险与下一步……"):
+                with st.spinner("见微正在生成解读……"):
                     st.session_state.latest_advice = generate_advice(plan,{"market_state":latest_state,"signal_date":allocation["latest_signal_date"],"data_as_of":allocation["as_of_date"],**current_answers()})
             except Exception as exc:
                 st.error(f"见微暂时无法完成在线解读：{exc}")
@@ -256,15 +256,15 @@ def render_interpretation(plan: dict) -> None:
                 unsafe_allow_html=True,
             )
         else:
-            st.info("点击“生成见微解读”，这里会给出完整说明；生成按钮和加载状态均保留在本区域。")
+            st.info("点击按钮生成解读。")
 
 
 def render_assessment() -> None:
-    render_header("PERSONAL ALLOCATION","风险偏好问卷与配置方案","回答五个问题，系统会根据你的回答计算黄金与比特币的参考配置。")
+    render_header("PERSONAL ALLOCATION","风险偏好问卷与配置方案","完成5题，查看黄金与比特币参考配置。")
     left,right = st.columns([1.15,1],gap="large")
     with left:
         with st.container(border=True):
-            st.markdown('<div class="card-heading">风险偏好问卷</div><div class="card-intro">完成五个问题，形成与你的期限、资金需求和风险感受相匹配的参考。</div>',unsafe_allow_html=True)
+            st.markdown('<div class="card-heading">风险偏好问卷</div><div class="card-intro">完成5题后生成结果。</div>',unsafe_allow_html=True)
             step = int(st.session_state.assessment_step)
             render_stepper(step)
             render_question(step)
@@ -279,7 +279,7 @@ def render_assessment() -> None:
                 else: st.session_state.assessment_complete = True
                 st.rerun()
             plan = current_plan()
-            st.markdown(f'<div class="result-banner">当前风险评分 <b>{plan["risk_score"]:.1f}</b> / 100。每次修改答案，右侧比例都会由同一套规则实时重算。</div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="result-banner">风险评分 <b>{plan["risk_score"]:.1f}</b> / 100 · 比例实时更新</div>',unsafe_allow_html=True)
             with st.expander("按投资金额换算",expanded=False):
                 st.number_input("计划投资金额（元）",min_value=0.0,step=1000.0,key="investment_amount")
                 a,b = st.columns(2)
@@ -295,7 +295,7 @@ def render_assessment() -> None:
 
 def render_plan() -> None:
     plan = current_plan()
-    render_header("MY PLAN","我的配置方案","把个性化权重换算为金额，并明确下一次检查与调仓边界。")
+    render_header("MY PLAN","我的配置方案","查看目标金额和调仓提示。")
     left,right = st.columns([1.1,.9],gap="large")
     with left:
         with st.container(border=True): render_result_panel(plan)
@@ -312,7 +312,7 @@ def render_plan() -> None:
 
 def render_history() -> None:
     plan = current_plan(); profile = plan["profile"]
-    render_header("WALK-FORWARD EVIDENCE","历史参考方案","展示与当前风险区间最接近的历史检验结果，仅作参考，不代表未来收益。")
+    render_header("WALK-FORWARD EVIDENCE","历史参考方案","查看相近风险区间的历史结果。")
     path = data["q4_paths"].query("method == 'baseline' and profile == @profile")
     perf = data["q4_performance"].query("method == 'baseline' and profile == @profile").iloc[0]
     with st.container(border=True):
@@ -325,32 +325,32 @@ def render_history() -> None:
 
 def render_chat() -> None:
     plan = current_plan()
-    render_header("JIANWEI Q&A","见微问答","连续提问配置方案、投资概念与风险。涉及你的方案时，见微会引用当前问卷计算出的配置。")
+    render_header("JIANWEI Q&A","见微问答","询问配置、概念和风险。")
     with st.container(border=True):
         st.markdown(
-            f'<div class="assistant-profile"><img class="assistant-avatar" src="{JIANWEI_AVATAR_URI}" alt="见微助手形象"><div><div class="assistant-profile-name">见微</div><div class="assistant-profile-role">你的投资问答助手<br>解释配置、投资概念与风险</div></div></div>',
+            f'<div class="assistant-profile"><img class="assistant-avatar" src="{JIANWEI_AVATAR_URI}" alt="见微助手形象"><div><div class="assistant-profile-name">见微</div><div class="assistant-profile-role">配置与风险问答</div></div></div>',
             unsafe_allow_html=True,
         )
         st.markdown(
-            f'<div class="result-banner">当前配置：黄金 <b>{plan["gold_weight"]:.1%}</b> · 比特币 <b>{plan["bitcoin_weight"]:.1%}</b> · 风险评分 <b>{plan["risk_score"]:.1f}</b> / 100。调整问卷后，此处会同步更新。</div>',
+            f'<div class="result-banner">黄金 <b>{plan["gold_weight"]:.1%}</b> · 比特币 <b>{plan["bitcoin_weight"]:.1%}</b> · 风险评分 <b>{plan["risk_score"]:.1f}</b> / 100</div>',
             unsafe_allow_html=True,
         )
         if not st.session_state.chat_messages:
             with st.chat_message("assistant", avatar=str(JIANWEI_AVATAR_PATH)):
-                st.markdown("你好，我是见微。你可以问我：为什么这样配置？回撤是什么意思？比特币波动大时需要立刻调仓吗？也可以继续追问我的上一条回答。")
+                st.markdown("你好，我是见微。你可以问配置理由、回撤或调仓问题。")
         for message in st.session_state.chat_messages:
             avatar = str(JIANWEI_AVATAR_PATH) if message["role"] == "assistant" else None
             with st.chat_message(message["role"], avatar=avatar):
                 st.markdown(message["content"])
 
-        prompt = st.chat_input("继续向见微提问；可以追问上一轮回答……")
+        prompt = st.chat_input("问见微……")
         if prompt:
             st.session_state.chat_messages.append({"role":"user","content":prompt})
             with st.chat_message("user"):
                 st.markdown(prompt)
             try:
                 with st.chat_message("assistant", avatar=str(JIANWEI_AVATAR_PATH)):
-                    with st.spinner("见微正在结合当前配置思考……"):
+                    with st.spinner("见微正在回答……"):
                         answer = generate_chat_answer(
                             st.session_state.chat_messages,
                             plan,
@@ -369,7 +369,7 @@ def render_chat() -> None:
 
 
 def render_research() -> None:
-    render_header("MODEL EVIDENCE","方法说明","从风险测度、因子检验、市场状态到走步回测，说明配置结论的计算依据。")
+    render_header("MODEL EVIDENCE","方法说明","查看配置依据。")
     q1 = frozen["Q1"]
     st.markdown(f'<div class="method-grid"><div class="method-item"><b>Q1 · 风险画像</b><span>黄金年化波动 {q1["gold"]["annualized_volatility"]:.1%}；比特币年化波动 {q1["bitcoin"]["annualized_volatility"]:.1%}。两类资产并非同一风险量级。</span></div><div class="method-item"><b>Q2 · 因子检验</b><span>滚动关联用于描述环境变化；FDR校正后不宣称稳定因果或价格预测能力。</span></div><div class="method-item"><b>Q3 · 状态识别</b><span>正常、宏观压力、加密压力三种状态只用于风险提示，不覆盖配置引擎权重。</span></div><div class="method-item"><b>Q4 · 走步回测</b><span>252日风险估计、21个共同报价日检查、2个百分点缓冲、单边10bp交易成本。</span></div></div>',unsafe_allow_html=True)
     st.warning("方法说明：个性化层不会让大模型自由给权重；确定性引擎只在三组正式配置校准锚点之间进行可审计的连续插值，并把结构化上下文交给见微解释。历史回测不保证未来表现。")
