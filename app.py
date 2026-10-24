@@ -72,10 +72,14 @@ st.markdown(
     [data-testid="stExpander"]{background:rgba(6,15,24,.70);border-color:var(--line)}[data-testid="stNumberInput"] input,[data-baseweb="select"]>div{background:rgba(5,13,21,.82);color:#f7f1e5;border-color:rgba(237,199,119,.18)}[data-testid="stAlert"]{background:rgba(7,17,27,.88);color:#d9e0e5;border-color:rgba(237,199,119,.22)}
     [data-testid="stTextInput"] input,[data-testid="stNumberInput"] input,[data-baseweb="select"]>div{font-size:18px!important;min-height:52px;color:#fffaf0!important;font-weight:600}
     [data-testid="stVerticalBlockBorderWrapper"]:has([data-testid="stChatInput"]){min-height:660px;padding:1rem .8rem 1.3rem!important;background:rgba(3,11,18,.96);border-color:rgba(244,210,139,.42)!important}
-    [data-testid="stChatInput"]{margin-top:1.25rem;border:1px solid rgba(244,210,139,.55);border-radius:14px;background:rgba(12,25,37,.96);box-shadow:0 12px 32px rgba(0,0,0,.32)}
-    [data-testid="stChatInput"] textarea{font-size:18px!important;min-height:84px!important;padding:1rem 3.5rem 1rem 1rem!important;color:#fffaf0!important;font-weight:500;line-height:1.6}
-    [data-testid="stChatInput"] textarea::placeholder{color:#aeb8c0!important;opacity:1}
-    [data-testid="stChatInput"] button{width:46px!important;height:46px!important}
+    [data-testid="stChatInput"]{margin-top:1.25rem;border:1px solid rgba(244,210,139,.55);border-radius:14px;background:#0b1b29!important;box-shadow:0 12px 32px rgba(0,0,0,.32);overflow:hidden}
+    [data-testid="stChatInput"]>div,
+    [data-testid="stChatInput"] [data-baseweb="textarea"],
+    [data-testid="stChatInput"] textarea{background:#0b1b29!important;background-color:#0b1b29!important}
+    [data-testid="stChatInput"] textarea{font-size:18px!important;min-height:84px!important;padding:1rem 3.5rem 1rem 1rem!important;color:#fffaf0!important;-webkit-text-fill-color:#fffaf0!important;caret-color:#edc777!important;font-weight:500;line-height:1.6}
+    [data-testid="stChatInput"] textarea::placeholder{color:#aeb8c0!important;-webkit-text-fill-color:#aeb8c0!important;opacity:1}
+    [data-testid="stChatInput"] button{width:46px!important;height:46px!important;background:#ef514f!important;border-radius:11px!important}
+    [data-testid="stChatInput"] button svg{fill:#fff!important;color:#fff!important}
     [data-testid="stChatMessage"]{font-size:18px;line-height:1.78;padding:1rem .8rem;border-radius:12px;margin:.45rem 0;background:rgba(255,255,255,.025);gap:1rem}[data-testid="stChatMessage"] p{color:#eef2f5!important;font-weight:500}
     [data-testid="stChatMessageAvatarCustom"]{width:72px!important;height:72px!important;min-width:72px!important;flex:0 0 72px!important;background:rgba(205,255,142,.10)!important;border:1px solid rgba(205,255,142,.34)!important}[data-testid="stChatMessageAvatarCustom"] img{width:68px!important;height:68px!important;object-fit:contain!important;image-rendering:pixelated}
     .assistant-profile{display:flex;align-items:center;gap:1.35rem;margin:.35rem 0 1.2rem;padding:.85rem 1.2rem;border:1px solid rgba(205,255,142,.26);border-radius:16px;background:linear-gradient(100deg,rgba(205,255,142,.09),rgba(84,231,181,.045))}.assistant-avatar{width:160px;height:160px;object-fit:contain;object-position:center;border-radius:20px;filter:drop-shadow(0 12px 18px rgba(0,0,0,.28));image-rendering:pixelated}.assistant-profile-name{font-family:"STSong","Songti SC",serif;color:#fffaf0;font-size:1.55rem;font-weight:700;letter-spacing:.08em}.assistant-profile-role{color:#d8dee3;font-size:16px;font-weight:500;margin-top:.35rem;line-height:1.65}
