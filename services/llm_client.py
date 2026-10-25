@@ -88,9 +88,10 @@ def _post_chat(config: dict[str, str], payload: dict) -> dict:
                 "Content-Type": "application/json",
             },
             json=payload,
-            # Keep the public demo responsive when a configured provider has
-            # expired or is unreachable. The caller falls back to local copy.
-            timeout=(3, 6),
+            # Long-form financial explanations can take longer than a short
+            # chat reply. Keep connection failures fast, while allowing the
+            # provider enough time to finish a useful answer before fallback.
+            timeout=(5, 45),
         )
         response.raise_for_status()
         body = response.json()
