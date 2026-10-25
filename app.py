@@ -160,13 +160,27 @@ allocation = data["allocation"]
 latest_state = allocation["market_state_at_signal"]
 state_names = {"normal": "正常", "macro_stress": "宏观压力", "crypto_stress": "加密压力"}
 
-DEFAULTS = {"assessment_step":0,"answer_horizon_years":7,"answer_max_drawdown_pct":20,"answer_liquidity_need":"低","answer_loss_reaction":"继续持有","answer_bitcoin_acceptance":66,"investment_amount":100000.0,"current_gold":0.0,"current_bitcoin":0.0,"chat_messages":[],"navigation_choice":"风险偏好问卷"}
+DEFAULTS = {"assessment_step":0,"answer_horizon_years":"3—5年","answer_max_drawdown_pct":"约20%","answer_liquidity_need":"基本不会使用","answer_loss_reaction":"继续持有","answer_bitcoin_acceptance":"可以接受一定比例","investment_amount":100000.0,"current_gold":0.0,"current_bitcoin":0.0,"chat_messages":[],"navigation_choice":"风险偏好问卷"}
 for key, value in DEFAULTS.items():
     st.session_state.setdefault(key, value)
 
+# Convert values left in an open browser session by the earlier slider-based
+# questionnaire so the new categorical controls always receive valid options.
+if not isinstance(st.session_state.answer_horizon_years, str):
+    years = float(st.session_state.answer_horizon_years)
+    st.session_state.answer_horizon_years = "6个月—1年" if years <= 1 else "1—3年" if years <= 3 else "3—5年" if years <= 5 else "5年以上"
+if not isinstance(st.session_state.answer_max_drawdown_pct, str):
+    drawdown = float(st.session_state.answer_max_drawdown_pct)
+    st.session_state.answer_max_drawdown_pct = "10%以内" if drawdown <= 10 else "约20%" if drawdown <= 20 else "约30%" if drawdown <= 30 else "约40%" if drawdown <= 40 else "50%左右"
+st.session_state.answer_liquidity_need = {"高":"一年内很可能使用","中":"可能使用一部分","低":"基本不会使用"}.get(st.session_state.answer_liquidity_need,st.session_state.answer_liquidity_need)
+st.session_state.answer_loss_reaction = {"立即清仓":"全部卖出","明显减仓":"卖出一部分","逢低增加":"在可承受范围内增加"}.get(st.session_state.answer_loss_reaction,st.session_state.answer_loss_reaction)
+if not isinstance(st.session_state.answer_bitcoin_acceptance, str):
+    acceptance = float(st.session_state.answer_bitcoin_acceptance)
+    st.session_state.answer_bitcoin_acceptance = "完全不愿意" if acceptance < 12.5 else "少量可以" if acceptance < 37.5 else "可以接受一定比例" if acceptance < 62.5 else "接受较高比例" if acceptance < 87.5 else "充分理解风险并愿意承担"
+
 
 def current_answers() -> dict:
-    return {"horizon_years":st.session_state.answer_horizon_years,"max_drawdown":st.session_state.answer_max_drawdown_pct/100,"liquidity_need":st.session_state.answer_liquidity_need,"loss_reaction":st.session_state.answer_loss_reaction,"bitcoin_acceptance":st.session_state.answer_bitcoin_acceptance}
+    return {"horizon_years":st.session_state.answer_horizon_years,"max_drawdown":st.session_state.answer_max_drawdown_pct,"liquidity_need":st.session_state.answer_liquidity_need,"loss_reaction":st.session_state.answer_loss_reaction,"bitcoin_acceptance":st.session_state.answer_bitcoin_acceptance}
 
 
 def current_plan() -> dict:
@@ -178,7 +192,7 @@ def render_header(eyebrow: str, title: str, subtitle: str) -> None:
 
 
 def render_stepper(active: int) -> None:
-    labels = ["投资期限","你能接受的回撤","流动性需求","亏损反应","比特币接受度"]
+    labels = ["资金闲置时间","可接受亏损","资金使用需求","亏损反应","比特币接受度"]
     items = []
     for index,label in enumerate(labels):
         status = "done" if index < active else "active" if index == active else ""
@@ -198,25 +212,25 @@ def prepare_widget(widget_key: str, answer_key: str) -> None:
 
 def render_question(step: int) -> None:
     if step == 0:
-        st.markdown('<div class="question-kicker">投资目标</div><div class="question-title">你的计划投资期限</div><div class="question-help">预计持有多久？</div>',unsafe_allow_html=True)
+        st.markdown('<div class="question-kicker">时间条件</div><div class="question-title">你预计多久内不会使用这笔资金？</div><div class="question-help">请选择最符合近期资金安排的时间范围。</div>',unsafe_allow_html=True)
         prepare_widget("widget_horizon_years","answer_horizon_years")
-        st.slider("计划投资期限（年）",1,10,key="widget_horizon_years",label_visibility="collapsed",on_change=sync_answer,args=("widget_horizon_years","answer_horizon_years"))
+        st.radio("预计资金闲置时间",["6个月以内","6个月—1年","1—3年","3—5年","5年以上"],key="widget_horizon_years",label_visibility="collapsed",on_change=sync_answer,args=("widget_horizon_years","answer_horizon_years"))
     elif step == 1:
-        st.markdown('<div class="question-kicker">风险承受度</div><div class="question-title">你能接受的回撤</div><div class="question-help">你能承受多大幅度的阶段性亏损？</div>',unsafe_allow_html=True)
+        st.markdown('<div class="question-kicker">损失承受</div><div class="question-title">你最多能接受多大的阶段性亏损？</div><div class="question-help">这是风险承受范围，不是系统能够保证的亏损上限。</div>',unsafe_allow_html=True)
         prepare_widget("widget_max_drawdown_pct","answer_max_drawdown_pct")
-        st.slider("你能接受的回撤（%）",10,50,step=5,key="widget_max_drawdown_pct",label_visibility="collapsed",on_change=sync_answer,args=("widget_max_drawdown_pct","answer_max_drawdown_pct"))
+        st.radio("可接受阶段性亏损",["10%以内","约20%","约30%","约40%","50%左右"],key="widget_max_drawdown_pct",horizontal=True,label_visibility="collapsed",on_change=sync_answer,args=("widget_max_drawdown_pct","answer_max_drawdown_pct"))
     elif step == 2:
-        st.markdown('<div class="question-kicker">资金约束</div><div class="question-title">流动性需求</div><div class="question-help">三年内需要用到这笔钱吗？</div>',unsafe_allow_html=True)
+        st.markdown('<div class="question-kicker">资金安排</div><div class="question-title">未来一年，你使用这笔资金的可能性有多大？</div><div class="question-help">近期用钱需求越高，越不适合承担较大波动。</div>',unsafe_allow_html=True)
         prepare_widget("widget_liquidity_need","answer_liquidity_need")
-        st.select_slider("流动性需求",["高","中","低"],key="widget_liquidity_need",label_visibility="collapsed",on_change=sync_answer,args=("widget_liquidity_need","answer_liquidity_need"))
+        st.radio("未来一年资金需求",["一年内很可能使用","可能使用一部分","基本不会使用"],key="widget_liquidity_need",label_visibility="collapsed",on_change=sync_answer,args=("widget_liquidity_need","answer_liquidity_need"))
     elif step == 3:
         st.markdown('<div class="question-kicker">行为偏好</div><div class="question-title">面对短期亏损时</div><div class="question-help">若短期下跌20%，你会怎么做？</div>',unsafe_allow_html=True)
         prepare_widget("widget_loss_reaction","answer_loss_reaction")
-        st.radio("亏损反应",["立即清仓","明显减仓","继续持有","逢低增加"],key="widget_loss_reaction",horizontal=True,label_visibility="collapsed",on_change=sync_answer,args=("widget_loss_reaction","answer_loss_reaction"))
+        st.radio("亏损反应",["全部卖出","卖出一部分","暂时观望","继续持有","在可承受范围内增加"],key="widget_loss_reaction",label_visibility="collapsed",on_change=sync_answer,args=("widget_loss_reaction","answer_loss_reaction"))
     else:
-        st.markdown('<div class="question-kicker">资产认知</div><div class="question-title">比特币接受度</div><div class="question-help">你能接受多大的比特币波动？</div>',unsafe_allow_html=True)
+        st.markdown('<div class="question-kicker">产品偏好</div><div class="question-title">你愿意承担多少比特币风险暴露？</div><div class="question-help">比特币波动明显高于黄金，请按真实感受选择。</div>',unsafe_allow_html=True)
         prepare_widget("widget_bitcoin_acceptance","answer_bitcoin_acceptance")
-        st.slider("比特币接受度",0,100,key="widget_bitcoin_acceptance",label_visibility="collapsed",on_change=sync_answer,args=("widget_bitcoin_acceptance","answer_bitcoin_acceptance"))
+        st.radio("比特币接受程度",["完全不愿意","少量可以","可以接受一定比例","接受较高比例","充分理解风险并愿意承担"],key="widget_bitcoin_acceptance",label_visibility="collapsed",on_change=sync_answer,args=("widget_bitcoin_acceptance","answer_bitcoin_acceptance"))
 
 
 def render_result_panel(plan: dict) -> None:
@@ -230,7 +244,7 @@ def render_result_panel(plan: dict) -> None:
     fig.update_layout(height=255,margin={"l":12,"r":12,"t":8,"b":0},paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",showlegend=False,annotations=[{"text":f"风险评分<br><b>{plan['risk_score']:.0f}</b>","x":.5,"y":.5,"showarrow":False,"font":{"color":"#f4ead7","size":15}}])
     st.plotly_chart(fig,width="stretch",config={"displayModeBar":False})
     vol = plan["backtest_reference"]["annualized_volatility"]
-    st.markdown(f'<div class="metric-row"><div class="metric-box"><div class="metric-label">历史参考年化波动</div><div class="metric-value">{vol:.1%}</div><div class="tiny-bar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div><div class="metric-box"><div class="metric-label">你能接受的回撤</div><div class="metric-value">{st.session_state.answer_max_drawdown_pct}%</div><div class="tiny-bar"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div></div><div class="anchor-scale"><span>偏稳健</span><span>较均衡</span><span>偏进取</span></div><div class="logic-note">按五项回答匹配历史方案，仅供参考。</div>',unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-row"><div class="metric-box"><div class="metric-label">历史参考年化波动</div><div class="metric-value">{vol:.1%}</div><div class="tiny-bar"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div><div class="metric-box"><div class="metric-label">可接受阶段性亏损</div><div class="metric-value">{st.session_state.answer_max_drawdown_pct}</div><div class="tiny-bar"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div></div></div><div class="anchor-scale"><span>偏稳健</span><span>较均衡</span><span>偏进取</span></div><div class="logic-note">按五项回答匹配历史方案，仅供参考。</div>',unsafe_allow_html=True)
 
 
 def render_interpretation(plan: dict) -> None:
@@ -457,4 +471,3 @@ elif navigation == "我的配置方案": render_plan()
 elif navigation == "见微问答": render_chat()
 elif navigation == "历史参考方案": render_history()
 else: render_research()
-
