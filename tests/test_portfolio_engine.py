@@ -56,13 +56,23 @@ class PortfolioEngineTests(unittest.TestCase):
         self.assertEqual(low, 0)
         self.assertEqual(high, 100)
 
+    def test_categorical_questionnaire_is_bounded(self):
+        low, _ = calculate_risk_score(
+            "6个月以内", "10%以内", "一年内很可能使用", "全部卖出", "完全不愿意"
+        )
+        high, _ = calculate_risk_score(
+            "5年以上", "50%左右", "基本不会使用", "在可承受范围内增加", "充分理解风险并愿意承担"
+        )
+        self.assertEqual(low, 0)
+        self.assertEqual(high, 100)
+
     def test_personalized_plan_uses_continuous_anchor_interpolation(self):
         answers = {
-            "horizon_years": 7,
-            "max_drawdown": 0.20,
-            "liquidity_need": "低",
+            "horizon_years": "3—5年",
+            "max_drawdown": "约20%",
+            "liquidity_need": "基本不会使用",
             "loss_reaction": "继续持有",
-            "bitcoin_acceptance": 66,
+            "bitcoin_acceptance": "可以接受一定比例",
         }
         plan = calculate_personalized_plan(answers, 100000, 0, 0, self.allocation)
         balanced = self.allocation["profiles"]["balanced"]["target_weights"]["bitcoin"]
