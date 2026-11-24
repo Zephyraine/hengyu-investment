@@ -71,26 +71,81 @@ def _piecewise_interpolate(score: float, values: tuple[float, float, float]) -> 
 
 
 def calculate_risk_score(
-    horizon_years: int,
-    max_drawdown: float,
+    horizon_years: str | int | float,
+    max_drawdown: str | float,
     liquidity_need: str,
     loss_reaction: str,
-    bitcoin_acceptance: int,
+    bitcoin_acceptance: str | int | float,
 ) -> tuple[float, dict[str, float]]:
     """Return a continuous 0–100 score from five user-controlled inputs."""
-    liquidity_map = {"高": 0.0, "中": 0.5, "低": 1.0}
-    reaction_map = {"立即清仓": 0.0, "明显减仓": 0.3, "继续持有": 0.7, "逢低增加": 1.0}
+    horizon_map = {
+        "6个月以内": 0.0,
+        "6个月—1年": 0.25,
+        "1—3年": 0.50,
+        "3—5年": 0.75,
+        "5年以上": 1.0,
+    }
+    drawdown_map = {
+        "10%以内": 0.0,
+        "约20%": 0.25,
+        "约30%": 0.50,
+        "约40%": 0.75,
+        "50%左右": 1.0,
+    }
+    liquidity_map = {
+        "一年内很可能使用": 0.0,
+        "可能使用一部分": 0.5,
+        "基本不会使用": 1.0,
+        # Backward-compatible values for saved sessions.
+        "高": 0.0,
+        "中": 0.5,
+        "低": 1.0,
+    }
+    reaction_map = {
+        "全部卖出": 0.0,
+        "卖出一部分": 0.25,
+        "暂时观望": 0.50,
+        "继续持有": 0.75,
+        "在可承受范围内增加": 1.0,
+        # Backward-compatible values for saved sessions.
+        "立即清仓": 0.0,
+        "明显减仓": 0.3,
+        "逢低增加": 1.0,
+    }
+    acceptance_map = {
+        "完全不愿意": 0.0,
+        "少量可以": 0.25,
+        "可以接受一定比例": 0.50,
+        "接受较高比例": 0.75,
+        "充分理解风险并愿意承担": 1.0,
+    }
     if liquidity_need not in liquidity_map:
         raise ValueError("Unknown liquidity need.")
     if loss_reaction not in reaction_map:
         raise ValueError("Unknown loss reaction.")
 
+    horizon_score = (
+        horizon_map[horizon_years]
+        if isinstance(horizon_years, str) and horizon_years in horizon_map
+        else _clamp((float(horizon_years) - 1) / 9)
+    )
+    drawdown_score = (
+        drawdown_map[max_drawdown]
+        if isinstance(max_drawdown, str) and max_drawdown in drawdown_map
+        else _clamp((float(max_drawdown) - 0.10) / 0.40)
+    )
+    acceptance_score = (
+        acceptance_map[bitcoin_acceptance]
+        if isinstance(bitcoin_acceptance, str) and bitcoin_acceptance in acceptance_map
+        else _clamp(float(bitcoin_acceptance) / 100)
+    )
+
     components = {
-        "投资期限": _clamp((horizon_years - 1) / 9),
-        "回撤承受": _clamp((max_drawdown - 0.10) / 0.40),
+        "投资期限": horizon_score,
+        "回撤承受": drawdown_score,
         "流动性需求": liquidity_map[liquidity_need],
         "亏损反应": reaction_map[loss_reaction],
-        "比特币接受度": _clamp(bitcoin_acceptance / 100),
+        "比特币接受度": acceptance_score,
     }
     weights = {
         "投资期限": 0.20,
@@ -115,11 +170,11 @@ def calculate_personalized_plan(
         raise ValueError("Amounts cannot be negative.")
 
     score, components = calculate_risk_score(
-        int(answers["horizon_years"]),
-        float(answers["max_drawdown"]),
+        answers["horizon_years"],
+        answers["max_drawdown"],
         str(answers["liquidity_need"]),
         str(answers["loss_reaction"]),
-        int(answers["bitcoin_acceptance"]),
+        answers["bitcoin_acceptance"],
     )
     profile_order = ("conservative", "balanced", "aggressive")
     btc_anchors = tuple(

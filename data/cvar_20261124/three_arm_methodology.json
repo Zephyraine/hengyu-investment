@@ -1,0 +1,56 @@
+{
+  "data_file_sha256": "e7418fdf2a7f7daf0314a24de288221d92b9ae839fd6f2761d0cf79b21c8efb1",
+  "basket_construction": "1/3 each token initial dollar exposure on 2021-01-04, units fixed within basket; price index = mean(price_i / price_i_initial), no daily rebalancing; stable basket transaction fee .0005 per traded weight",
+  "portfolio_method": "isolated new research prototype; same solver theta, window 252 natural days, 21 quote days, next archived gold quote close, BTC caps and 30% third asset cap as old prototype",
+  "not_formal_q4": true,
+  "three_arm_results": [
+    {
+      "strategy": "GOLD_BTC_STABLE",
+      "profile": "保守",
+      "theta": 0.0,
+      "start": "2022-02-17",
+      "end": "2026-01-29",
+      "ending_wealth": 1.9305194435072137,
+      "cagr": 0.1811635559982021,
+      "annual_volatility": 0.11487775539976541,
+      "maximum_drawdown": -0.17547956921446184,
+      "daily_cvar95_loss": 0.013602887587639044,
+      "orders": 48,
+      "order_failures": 0,
+      "total_fees_pct_initial": 0.002365035669012117,
+      "mean_target_stable": 0.3
+    },
+    {
+      "strategy": "GOLD_BTC_STABLE",
+      "profile": "均衡",
+      "theta": 0.6,
+      "start": "2022-02-17",
+      "end": "2026-01-29",
+      "ending_wealth": 1.9011888182716692,
+      "cagr": 0.17659515952478233,
+      "annual_volatility": 0.11514709146124817,
+      "maximum_drawdown": -0.17547956921446184,
+      "daily_cvar95_loss": 0.013609339899825582,
+      "orders": 48,
+      "order_failures": 0,
+      "total_fees_pct_initial": 0.002727349858848196,
+      "mean_target_stable": 0.3
+    },
+    {
+      "strategy": "GOLD_BTC_STABLE",
+      "profile": "进取",
+      "theta": 1.5,
+      "start": "2022-02-17",
+      "end": "2026-01-29",
+      "ending_wealth": 1.902348730080502,
+      "cagr": 0.17677681791296918,
+      "annual_volatility": 0.11506190113893766,
+      "maximum_drawdown": -0.1763708139741743,
+      "daily_cvar95_loss": 0.013597848950620049,
+      "orders": 48,
+      "order_failures": 0,
+      "total_fees_pct_initial": 0.0027554849920755995,
+      "mean_target_stable": 0.3
+    }
+  ]
+}
