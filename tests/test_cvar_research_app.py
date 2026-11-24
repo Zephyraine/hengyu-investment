@@ -9,6 +9,7 @@ from services.cvar_research_service import (
     get_latest_target,
     get_personalized_allocation,
     get_personalized_target_history,
+    get_research_data_fingerprint,
     get_strategy_metrics,
     get_target_history,
     get_three_arm_metrics,
@@ -21,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_new_research_data_contract() -> None:
     data = load_cvar_research_data()
+    assert len(get_research_data_fingerprint()) == 64
     assert len(data["metrics"]) == 9
     assert set(data["metrics"]["strategy"]) == {
         "GOLD_BTC",

@@ -13,6 +13,7 @@ from services.cvar_research_service import (
     get_latest_target,
     get_personalized_allocation,
     get_personalized_target_history,
+    get_research_data_fingerprint,
     get_scenario_meta,
     get_strategy_metrics,
     get_three_arm_metrics,
@@ -96,7 +97,7 @@ def get_data(cache_schema: str) -> dict:
     return load_cvar_research_data()
 
 
-data = get_data("cvar-targets-v1")
+data = get_data(get_research_data_fingerprint())
 NAVIGATION = ["首页", "环境与证据", "双资产配置", "稳定币研究", "见微 Agent"]
 DEFAULT_SCENARIO = "情景A｜尾部风险优先"
 st.session_state.setdefault("navigation", "首页")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -14,6 +15,15 @@ TARGET_GROUPS = {
     "GOLD_BTC_CASH": ("cash_targets", "cash", "CASH"),
     "GOLD_BTC_STABLE": ("stable_targets", "stable", "STABLE"),
 }
+
+
+def get_research_data_fingerprint() -> str:
+    """Return a stable cache key that changes whenever packaged research data changes."""
+    digest = hashlib.sha256()
+    for path in sorted(item for item in DATA_ROOT.rglob("*") if item.is_file()):
+        digest.update(path.relative_to(DATA_ROOT).as_posix().encode("utf-8"))
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
 
 SCENARIOS = {
     "情景A｜尾部风险优先": {"profile": "保守", "theta": 0.0, "btc_cap": 0.15, "short": "A"},
