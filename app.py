@@ -86,11 +86,14 @@ st.markdown(
 
 
 @st.cache_data(show_spinner=False)
-def get_data() -> dict:
+def get_data(cache_schema: str) -> dict:
+    # cache_schema explicitly invalidates Streamlit Cloud's cached payload
+    # when the returned data contract gains new fields.
+    _ = cache_schema
     return load_cvar_research_data()
 
 
-data = get_data()
+data = get_data("cvar-targets-v1")
 NAVIGATION = ["首页", "环境与证据", "双资产配置", "稳定币研究", "见微 Agent"]
 DEFAULT_SCENARIO = "情景A｜尾部风险优先"
 st.session_state.setdefault("navigation", "首页")

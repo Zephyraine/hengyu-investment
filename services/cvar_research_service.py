@@ -95,7 +95,7 @@ def get_three_arm_metrics(data: dict, scenario_name: str) -> pd.DataFrame:
 
 def get_target_history(data: dict, scenario_name: str, strategy: str = "GOLD_BTC") -> pd.DataFrame:
     meta = get_scenario_meta(scenario_name)
-    targets = data["targets"].get(strategy, pd.DataFrame())
+    targets = data.get("targets", {}).get(strategy, pd.DataFrame())
     if targets.empty:
         return targets.copy()
     return targets.loc[targets["profile_label"] == meta["profile"]].copy()
