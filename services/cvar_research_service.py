@@ -21,6 +21,50 @@ SCENARIOS = {
     "情景C｜收益偏好增强": {"profile": "进取", "theta": 1.5, "btc_cap": 0.60, "short": "C"},
 }
 
+PREFERENCE_OPTIONS = {
+    "horizon": {
+        "6个月以内": 0.0,
+        "6个月—1年": 0.25,
+        "1—3年": 0.50,
+        "3—5年": 0.75,
+        "5年以上": 1.0,
+    },
+    "drawdown": {
+        "10%以内": 0.0,
+        "约20%": 0.25,
+        "约30%": 0.50,
+        "约40%": 0.75,
+        "50%左右": 1.0,
+    },
+    "liquidity": {
+        "一年内很可能使用": 0.0,
+        "可能使用一部分": 0.50,
+        "基本不会使用": 1.0,
+    },
+    "loss_reaction": {
+        "全部卖出": 0.0,
+        "卖出一部分": 0.25,
+        "暂时观望": 0.50,
+        "继续持有": 0.75,
+        "在可承受范围内增加": 1.0,
+    },
+    "bitcoin_acceptance": {
+        "完全不愿意": 0.0,
+        "少量可以": 0.25,
+        "可以接受一定比例": 0.50,
+        "接受较高比例": 0.75,
+        "充分理解风险并愿意承担": 1.0,
+    },
+}
+
+PREFERENCE_WEIGHTS = {
+    "horizon": 0.20,
+    "drawdown": 0.30,
+    "liquidity": 0.15,
+    "loss_reaction": 0.20,
+    "bitcoin_acceptance": 0.15,
+}
+
 
 def load_cvar_research_data() -> dict:
     metrics = pd.read_csv(DATA_ROOT / "three_arm_prototype_metrics.csv")
@@ -106,4 +150,68 @@ def get_latest_target(data: dict, scenario_name: str, strategy: str = "GOLD_BTC"
     if history.empty:
         return None
     return history.sort_values("date").iloc[-1].to_dict()
+
+
+def calculate_preference_score(answers: dict[str, str]) -> tuple[float, dict[str, float]]:
+    components: dict[str, float] = {}
+    for key, weight in PREFERENCE_WEIGHTS.items():
+        value = answers.get(key)
+        if value not in PREFERENCE_OPTIONS[key]:
+            raise ValueError(f"Unknown preference answer: {key}")
+        components[key] = PREFERENCE_OPTIONS[key][value]
+    score = sum(components[key] * PREFERENCE_WEIGHTS[key] for key in components) * 100
+    return round(score, 2), components
+
+
+def _interpolate_three(score: float, values: tuple[float, float, float]) -> float:
+    if not 0 <= score <= 100:
+        raise ValueError("Preference score must be between 0 and 100.")
+    low, middle, high = values
+    if score <= 50:
+        return low + (score / 50) * (middle - low)
+    return middle + ((score - 50) / 50) * (high - middle)
+
+
+def get_personalized_allocation(data: dict, score: float) -> dict:
+    scenario_names = list(SCENARIOS)
+    latest = [get_latest_target(data, name) for name in scenario_names]
+    if any(item is None for item in latest):
+        raise ValueError("All three dual-asset target anchors are required.")
+    theta = _interpolate_three(score, tuple(SCENARIOS[name]["theta"] for name in scenario_names))
+    btc_cap = _interpolate_three(score, tuple(SCENARIOS[name]["btc_cap"] for name in scenario_names))
+    bitcoin = _interpolate_three(score, tuple(float(item["BTC"]) for item in latest if item))
+    metrics = {}
+    for field in ("cagr", "annual_volatility", "maximum_drawdown", "daily_cvar95_loss"):
+        anchors = tuple(float(get_strategy_metrics(data, name)[field]) for name in scenario_names)
+        metrics[field] = _interpolate_three(score, anchors)
+    return {
+        "score": score,
+        "theta": theta,
+        "btc_cap": btc_cap,
+        "GOLD": 1 - bitcoin,
+        "BTC": bitcoin,
+        "date": latest[0]["date"],
+        "signal_date": latest[0]["signal_date"],
+        "reference_metrics": metrics,
+    }
+
+
+def get_personalized_target_history(data: dict, score: float) -> pd.DataFrame:
+    histories = [get_target_history(data, name).sort_values("date").reset_index(drop=True) for name in SCENARIOS]
+    if any(len(frame) != 48 for frame in histories):
+        raise ValueError("All three dual-asset target histories are required.")
+    if not all(histories[0]["date"].equals(frame["date"]) for frame in histories[1:]):
+        raise ValueError("Dual-asset target dates are not aligned.")
+    bitcoin = [
+        _interpolate_three(score, tuple(float(frame.loc[index, "BTC"]) for frame in histories))
+        for index in range(len(histories[0]))
+    ]
+    return pd.DataFrame(
+        {
+            "date": histories[0]["date"],
+            "signal_date": histories[0]["signal_date"],
+            "GOLD": [1 - value for value in bitcoin],
+            "BTC": bitcoin,
+        }
+    )
 

@@ -7,11 +7,14 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from services.cvar_research_service import (
+    PREFERENCE_OPTIONS,
     SCENARIOS,
+    calculate_preference_score,
     get_latest_target,
+    get_personalized_allocation,
+    get_personalized_target_history,
     get_scenario_meta,
     get_strategy_metrics,
-    get_target_history,
     get_three_arm_metrics,
     load_cvar_research_data,
 )
@@ -203,50 +206,73 @@ def render_evidence() -> None:
 def render_allocation() -> None:
     render_header(
         "DUAL-ASSET CVAR",
-        "黄金—比特币CVaR配置实验",
-        "选择预设参数情景，查看相同历史样本下的收益—尾部风险结果。情景选择不是个人风险测评。",
+        "生成你的黄金—比特币研究配置",
+        "回答五个约束问题。系统将偏好平滑映射到新版CVaR三档实测锚点，不再要求你直接选择研究情景。",
     )
-    scenario_selector("allocation_scenario")
-    meta, metrics = current_scenario()
-    st.markdown(f'<div class="scenario-head"><strong>{meta["name"]}</strong><br>θ={meta["theta"]:.1f} · BTC权重上限 {meta["btc_cap"]:.0%} · 黄金与BTC权重之和为100%</div>', unsafe_allow_html=True)
-    metric_cards(metrics)
+    with st.container(border=True):
+        st.markdown("### 你的约束与风险感受")
+        st.caption("答案只用于生成研究参数，不会改变底层历史数据或绕过CVaR约束。")
+        q1, q2 = st.columns(2, gap="large")
+        with q1:
+            horizon = st.selectbox("计划持有多长时间？", list(PREFERENCE_OPTIONS["horizon"]), index=2)
+            liquidity = st.selectbox("一年内使用这笔资金的可能性？", list(PREFERENCE_OPTIONS["liquidity"]), index=1)
+            bitcoin_acceptance = st.selectbox("你对BTC高波动的接受程度？", list(PREFERENCE_OPTIONS["bitcoin_acceptance"]), index=2)
+        with q2:
+            drawdown = st.selectbox("组合最多回撤多少仍能继续持有？", list(PREFERENCE_OPTIONS["drawdown"]), index=2)
+            loss_reaction = st.selectbox("如果组合短期明显亏损，你更可能怎么做？", list(PREFERENCE_OPTIONS["loss_reaction"]), index=2)
+        answers = {
+            "horizon": horizon,
+            "drawdown": drawdown,
+            "liquidity": liquidity,
+            "loss_reaction": loss_reaction,
+            "bitcoin_acceptance": bitcoin_acceptance,
+        }
+
+    score, _ = calculate_preference_score(answers)
+    result = get_personalized_allocation(data, score)
+    history = get_personalized_target_history(data, score)
+    st.markdown("### 连续映射结果")
+    st.progress(score / 100, text=f"偏好分数 {score:.1f} / 100")
     st.markdown(
-        f'<div class="constraint-grid"><div class="constraint"><b>收益偏好参数</b><strong>{meta["theta"]:.1f}</strong><span>越大越重视历史平均收益</span></div>'
-        f'<div class="constraint"><b>BTC允许上限</b><strong>{meta["btc_cap"]:.0%}</strong><span>允许上限，不是实际目标权重</span></div>'
-        '<div class="constraint"><b>成功调仓</b><strong>48次</strong><span>本次原型求解失败0次</span></div></div>',
+        f'<div class="constraint-grid"><div class="constraint"><b>收益偏好参数 θ</b><strong>{result["theta"]:.2f}</strong><span>由0、0.6、1.5三档平滑映射</span></div>'
+        f'<div class="constraint"><b>BTC允许上限</b><strong>{result["btc_cap"]:.1%}</strong><span>由15%、35%、60%平滑映射</span></div>'
+        f'<div class="constraint"><b>偏好分数</b><strong>{score:.1f}</strong><span>答案小幅变化不会造成档位跳变</span></div></div>',
         unsafe_allow_html=True,
     )
-    latest = get_latest_target(data, st.session_state.scenario)
-    if latest:
-        history = get_target_history(data, st.session_state.scenario)
-        st.markdown("### 最新一次历史目标权重")
-        st.markdown(
-            f'<div class="constraint-grid"><div class="constraint"><b>黄金目标权重</b><strong>{latest["GOLD"]:.1%}</strong><span>组合稳定部分</span></div>'
-            f'<div class="constraint"><b>BTC目标权重</b><strong>{latest["BTC"]:.1%}</strong><span>未超过 {meta["btc_cap"]:.0%} 上限</span></div>'
-            f'<div class="constraint"><b>目标生效日</b><strong>{latest["date"]:%Y-%m-%d}</strong><span>信号日 {latest["signal_date"]:%Y-%m-%d}</span></div></div>',
-            unsafe_allow_html=True,
+    st.markdown(
+        f'<div class="constraint-grid"><div class="constraint"><b>黄金参考权重</b><strong>{result["GOLD"]:.1%}</strong><span>目标组合中的黄金部分</span></div>'
+        f'<div class="constraint"><b>BTC参考权重</b><strong>{result["BTC"]:.1%}</strong><span>没有为了匹配分数强行触及上限</span></div>'
+        f'<div class="constraint"><b>目标生效日</b><strong>{result["date"]:%Y-%m-%d}</strong><span>信号日 {result["signal_date"]:%Y-%m-%d}</span></div></div>',
+        unsafe_allow_html=True,
+    )
+    amount = st.number_input("模拟投资金额（元）", min_value=1000, max_value=100000000, value=100000, step=10000)
+    left, right = st.columns(2)
+    left.metric("黄金参考金额", f"¥{amount * result['GOLD']:,.0f}")
+    right.metric("BTC参考金额", f"¥{amount * result['BTC']:,.0f}")
+
+    st.markdown("### 三档历史结果的连续参考")
+    metric_cards(result["reference_metrics"])
+    st.caption("以上风险收益指标由三档冻结实测结果平滑插值得到，用于解释偏好位置，不等同于一次新的独立回测。")
+
+    fig = go.Figure()
+    fig.add_scatter(x=history["date"], y=history["GOLD"] * 100, name="黄金", mode="lines", line={"color": "#f4d28b", "width": 3})
+    fig.add_scatter(x=history["date"], y=history["BTC"] * 100, name="BTC", mode="lines", line={"color": "#dc8957", "width": 3})
+    chart_layout = transparent_chart_layout(360)
+    chart_layout["yaxis"] = {"title": "目标权重（%）", "range": [0, 100], "gridcolor": "rgba(255,255,255,.06)"}
+    fig.update_layout(title="48次历史目标权重的连续参考", legend={"orientation": "h", "y": 1.12}, **chart_layout)
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    with st.expander("查看三档CVaR锚点与映射方法"):
+        st.markdown("偏好分数0、50、100分别对应保守、均衡、进取三档冻结结果；区间内采用分段线性映射。问卷只改变参数与锚点位置，不预测下一期涨跌。")
+        st.dataframe(
+            [
+                {"锚点": name, "分数": score_anchor, "θ": meta["theta"], "BTC上限": meta["btc_cap"]}
+                for (name, meta), score_anchor in zip(SCENARIOS.items(), [0, 50, 100])
+            ],
+            hide_index=True,
+            width="stretch",
+            column_config={"BTC上限": st.column_config.NumberColumn(format="percent")},
         )
-        amount = st.number_input("模拟投资金额（元）", min_value=1000, max_value=100000000, value=100000, step=10000)
-        left, right = st.columns(2)
-        left.metric("黄金参考金额", f"¥{amount * latest['GOLD']:,.0f}")
-        right.metric("BTC参考金额", f"¥{amount * latest['BTC']:,.0f}")
-        fig = go.Figure()
-        fig.add_scatter(x=history["date"], y=history["GOLD"] * 100, name="黄金", mode="lines", line={"color": "#f4d28b", "width": 3})
-        fig.add_scatter(x=history["date"], y=history["BTC"] * 100, name="BTC", mode="lines", line={"color": "#dc8957", "width": 3})
-        fig.update_layout(title="48次历史目标权重变化", yaxis={"title": "目标权重（%）", "range": [0, 100]}, legend={"orientation": "h", "y": 1.12}, **transparent_chart_layout(360))
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-        st.caption("这是2026-01-22信号对应的历史研究目标，并非实时行情下的即时投资建议。")
-    else:
-        st.markdown(
-            f'<div class="warning-card"><strong>{meta["name"]}暂缺逐次目标权重。</strong><br>当前补充文件仅覆盖均衡档（θ=0.6）。页面不会用其他情景的权重替代或推算。</div>',
-            unsafe_allow_html=True,
-        )
-    explanation = {
-        "A": "θ=0时，目标函数不奖励历史平均收益，主要寻找历史CVaR较低的黄金—BTC组合，同时BTC最多15%。",
-        "B": "θ=0.6时，模型在CVaR基础上加入一定历史平均收益权重，同时BTC最多35%。",
-        "C": "θ=1.5时，模型更重视历史平均收益，同时BTC最多60%；但本样本历史收益并未因此高于情景A。",
-    }
-    st.info(explanation[meta["short"]])
+    st.info("分数更高只会放宽收益偏好和BTC约束，不保证模型一定提高BTC实际权重。当前最新均衡与进取锚点的实际权重相同。")
 
 
 def render_stablecoin() -> None:

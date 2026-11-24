@@ -3,8 +3,12 @@ from pathlib import Path
 from streamlit.testing.v1 import AppTest
 
 from services.cvar_research_service import (
+    PREFERENCE_OPTIONS,
     SCENARIOS,
+    calculate_preference_score,
     get_latest_target,
+    get_personalized_allocation,
+    get_personalized_target_history,
     get_strategy_metrics,
     get_target_history,
     get_three_arm_metrics,
@@ -42,7 +46,30 @@ def test_balanced_target_files_are_aligned_and_complete() -> None:
     assert latest is not None
     assert abs(latest["GOLD"] - 0.7410305793198364) < 1e-12
     assert abs(latest["BTC"] - 0.2589694206801636) < 1e-12
-    assert get_latest_target(data, "情景A｜尾部风险优先") is None
+    assert get_latest_target(data, "情景A｜尾部风险优先") is not None
+
+
+def test_questionnaire_maps_smoothly_to_new_cvar_anchors() -> None:
+    data = load_cvar_research_data()
+    middle_answers = {key: list(options)[len(options) // 2] for key, options in PREFERENCE_OPTIONS.items()}
+    score, components = calculate_preference_score(middle_answers)
+    assert score == 50.0
+    assert set(components) == set(PREFERENCE_OPTIONS)
+
+    conservative = get_personalized_allocation(data, 0)
+    balanced = get_personalized_allocation(data, 50)
+    aggressive = get_personalized_allocation(data, 100)
+    assert abs(conservative["BTC"] - 0.15) < 1e-12
+    assert abs(balanced["BTC"] - 0.2589694206801636) < 1e-12
+    assert abs(aggressive["BTC"] - 0.2589694206801636) < 1e-12
+    assert conservative["theta"] == 0.0
+    assert balanced["theta"] == 0.6
+    assert aggressive["theta"] == 1.5
+    assert len(get_personalized_target_history(data, 37.5)) == 48
+
+    below = get_personalized_allocation(data, 49.99)["BTC"]
+    above = get_personalized_allocation(data, 50.01)["BTC"]
+    assert abs(above - below) < 0.001
 
 
 def test_all_pages_render_without_streamlit_exceptions() -> None:
