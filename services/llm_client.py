@@ -275,6 +275,7 @@ def _offline_cvar_research_answer(question: str, context: dict) -> str:
     text = question.lower()
     scenario = context["scenario"]
     metrics = context["metrics"]
+    latest_target = context.get("latest_target")
     scenario_line = (
         f"当前查看的是 **{scenario['name']}**：θ={scenario['theta']:.1f}，"
         f"BTC权重上限为 **{scenario['btc_cap']:.0%}**。"
@@ -297,11 +298,18 @@ def _offline_cvar_research_answer(question: str, context: dict) -> str:
             "当前模型通过最近252日真实收益间接吸收近期市场环境，再使用滚动CVaR控制尾部风险。"
         )
     if any(term in text for term in ("比例", "权重", "配置", "情景", "theta", "θ")):
+        if latest_target:
+            return (
+                f"**当前研究情景**\n\n{scenario_line}\n\n"
+                f"最新一次历史目标于 **{latest_target['effective_date']}** 生效：黄金 **{latest_target['gold']:.1%}**、"
+                f"BTC **{latest_target['bitcoin']:.1%}**。该目标来自 {latest_target['signal_date']} 的滚动CVaR信号，"
+                "是历史研究结果，不是基于实时行情生成的即时投资建议。"
+            )
         return (
             f"**当前研究情景**\n\n{scenario_line}\n\n"
             f"历史CAGR为 **{metrics['cagr']:.2%}**，年化波动为 **{metrics['annual_volatility']:.2%}**，"
             f"最大回撤为 **{metrics['maximum_drawdown']:.2%}**。"
-            "当前交接包没有提供双资产逐次目标权重文件，因此页面不会编造黄金和BTC的最新比例。"
+            "当前情景尚未提供逐次目标权重文件，因此页面不会用其他情景的比例替代或推算。"
         )
     return (
         f"{scenario_line}\n\n我可以解释CVaR、三种θ情景、历史风险指标、经济环境与模型的关系，"

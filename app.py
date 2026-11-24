@@ -8,8 +8,10 @@ import streamlit as st
 
 from services.cvar_research_service import (
     SCENARIOS,
+    get_latest_target,
     get_scenario_meta,
     get_strategy_metrics,
+    get_target_history,
     get_three_arm_metrics,
     load_cvar_research_data,
 )
@@ -89,7 +91,7 @@ def get_data() -> dict:
 
 
 data = get_data()
-NAVIGATION = ["首页", "环境与证据", "双资产配置", "历史验证", "稳定币研究", "见微 Agent"]
+NAVIGATION = ["首页", "环境与证据", "双资产配置", "稳定币研究", "见微 Agent"]
 DEFAULT_SCENARIO = "情景A｜尾部风险优先"
 st.session_state.setdefault("navigation", "首页")
 st.session_state.setdefault("scenario", DEFAULT_SCENARIO)
@@ -211,38 +213,37 @@ def render_allocation() -> None:
         '<div class="constraint"><b>成功调仓</b><strong>48次</strong><span>本次原型求解失败0次</span></div></div>',
         unsafe_allow_html=True,
     )
-    st.markdown('<div class="warning-card"><strong>为什么暂时没有显示黄金/BTC最新比例？</strong><br>2026-11-24交接包提供了双资产三档汇总指标，但没有附带双资产逐次目标权重文件。第一版不会使用旧模型比例或猜测新权重；补齐新版targets后，这里将显示真实比例和模拟金额换算。</div>', unsafe_allow_html=True)
+    latest = get_latest_target(data, st.session_state.scenario)
+    if latest:
+        history = get_target_history(data, st.session_state.scenario)
+        st.markdown("### 最新一次历史目标权重")
+        st.markdown(
+            f'<div class="constraint-grid"><div class="constraint"><b>黄金目标权重</b><strong>{latest["GOLD"]:.1%}</strong><span>组合稳定部分</span></div>'
+            f'<div class="constraint"><b>BTC目标权重</b><strong>{latest["BTC"]:.1%}</strong><span>未超过 {meta["btc_cap"]:.0%} 上限</span></div>'
+            f'<div class="constraint"><b>目标生效日</b><strong>{latest["date"]:%Y-%m-%d}</strong><span>信号日 {latest["signal_date"]:%Y-%m-%d}</span></div></div>',
+            unsafe_allow_html=True,
+        )
+        amount = st.number_input("模拟投资金额（元）", min_value=1000, max_value=100000000, value=100000, step=10000)
+        left, right = st.columns(2)
+        left.metric("黄金参考金额", f"¥{amount * latest['GOLD']:,.0f}")
+        right.metric("BTC参考金额", f"¥{amount * latest['BTC']:,.0f}")
+        fig = go.Figure()
+        fig.add_scatter(x=history["date"], y=history["GOLD"] * 100, name="黄金", mode="lines", line={"color": "#f4d28b", "width": 3})
+        fig.add_scatter(x=history["date"], y=history["BTC"] * 100, name="BTC", mode="lines", line={"color": "#dc8957", "width": 3})
+        fig.update_layout(title="48次历史目标权重变化", yaxis={"title": "目标权重（%）", "range": [0, 100]}, legend={"orientation": "h", "y": 1.12}, **transparent_chart_layout(360))
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        st.caption("这是2026-01-22信号对应的历史研究目标，并非实时行情下的即时投资建议。")
+    else:
+        st.markdown(
+            f'<div class="warning-card"><strong>{meta["name"]}暂缺逐次目标权重。</strong><br>当前补充文件仅覆盖均衡档（θ=0.6）。页面不会用其他情景的权重替代或推算。</div>',
+            unsafe_allow_html=True,
+        )
     explanation = {
         "A": "θ=0时，目标函数不奖励历史平均收益，主要寻找历史CVaR较低的黄金—BTC组合，同时BTC最多15%。",
         "B": "θ=0.6时，模型在CVaR基础上加入一定历史平均收益权重，同时BTC最多35%。",
         "C": "θ=1.5时，模型更重视历史平均收益，同时BTC最多60%；但本样本历史收益并未因此高于情景A。",
     }
     st.info(explanation[meta["short"]])
-
-
-def render_history() -> None:
-    render_header(
-        "HISTORICAL VALIDATION",
-        "三种研究情景的历史验证",
-        "使用同一CVaR求解器、同一样本和执行规则，比较θ变化对收益与风险指标的实际影响。",
-    )
-    dual = data["metrics"].query("strategy == 'GOLD_BTC'").copy()
-    dual["情景"] = dual["profile"].map({"保守": "A", "均衡": "B", "进取": "C"})
-    fig = go.Figure()
-    fig.add_bar(name="年化波动", x=dual["情景"], y=dual["annual_volatility"] * 100, marker_color="#f4d28b", text=[f"{v:.2%}" for v in dual["annual_volatility"]], textposition="outside")
-    fig.add_bar(name="最大回撤绝对值", x=dual["情景"], y=dual["maximum_drawdown"].abs() * 100, marker_color="#dc8957", text=[f"{abs(v):.2%}" for v in dual["maximum_drawdown"]], textposition="outside")
-    fig.update_layout(barmode="group", legend={"orientation": "h", "y": 1.14}, **transparent_chart_layout(390))
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-    c1, c2 = st.columns(2, gap="large")
-    with c1:
-        fig = go.Figure(go.Bar(x=dual["情景"], y=dual["cagr"] * 100, marker_color=["#f4d28b", "#d7a862", "#bd8050"], text=[f"{v:.2%}" for v in dual["cagr"]], textposition="outside"))
-        fig.update_layout(title="历史CAGR", **transparent_chart_layout(330))
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-    with c2:
-        fig = go.Figure(go.Bar(x=dual["情景"], y=dual["daily_cvar95_loss"] * 100, marker_color=["#7fd8cb", "#67bdb2", "#509f98"], text=[f"{v:.3%}" for v in dual["daily_cvar95_loss"]], textposition="outside"))
-        fig.update_layout(title="日CVaR95", **transparent_chart_layout(330))
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-    st.markdown('<div class="conclusion-card"><strong>历史结果：</strong>三种情景的波动、回撤和CVaR非常接近，情景A的历史CAGR反而最高。θ表示目标函数设定，不代表收益排名，也不能据此推断未来表现。</div>', unsafe_allow_html=True)
 
 
 def render_stablecoin() -> None:
@@ -271,6 +272,31 @@ def render_stablecoin() -> None:
             width="stretch",
             column_config={name: st.column_config.NumberColumn(format="percent") for name in ["历史CAGR", "年化波动", "最大回撤", "日CVaR95"]},
         )
+        latest_rows = []
+        for strategy, label, third_asset in [
+            ("GOLD_BTC", "黄金＋BTC", None),
+            ("GOLD_BTC_CASH", "＋零收益现金", "CASH"),
+            ("GOLD_BTC_STABLE", "＋稳定币篮子", "STABLE"),
+        ]:
+            target = get_latest_target(data, st.session_state.scenario, strategy)
+            if target:
+                latest_rows.append(
+                    {
+                        "资产集合": label,
+                        "黄金": target["GOLD"],
+                        "BTC": target["BTC"],
+                        "第三资产": target.get(third_asset, 0.0) if third_asset else 0.0,
+                        "目标生效日": target["date"].date(),
+                    }
+                )
+        if len(latest_rows) == 3:
+            st.markdown("### 最新一次历史目标权重对照")
+            st.dataframe(
+                latest_rows,
+                hide_index=True,
+                width="stretch",
+                column_config={name: st.column_config.NumberColumn(format="percent") for name in ["黄金", "BTC", "第三资产"]},
+            )
         st.markdown('<div class="conclusion-card"><strong>研究结论：</strong>现金与稳定币均长期达到30%第三资产上限，二者风险收益结果接近。风险下降主要来自黄金和BTC敞口减少，尚未发现稳定币相对现金的明确独立配置优势。</div>', unsafe_allow_html=True)
     with use_tab:
         st.markdown("### 没有进入配置，不等于没有应用价值")
@@ -285,6 +311,7 @@ def render_stablecoin() -> None:
 
 def chat_context() -> dict:
     meta, metrics = current_scenario()
+    latest = get_latest_target(data, st.session_state.scenario)
     return {
         "version": data["version"],
         "status": data["data_status"],
@@ -293,7 +320,17 @@ def chat_context() -> dict:
         "metrics": {key: metrics[key] for key in ["cagr", "annual_volatility", "maximum_drawdown", "daily_cvar95_loss", "orders"]},
         "method": {"window_natural_days": 252, "alpha": 0.95, "expected_return_shrinkage": 0.25, "turnover_limit": 0.30, "gold_fee": 0.0005, "btc_fee": 0.0015},
         "stablecoin_conclusion": "No clear independent allocation advantage over zero-yield cash was established; both funding arms bind at the 30% cap.",
-        "weights_available": False,
+        "weights_available": latest is not None,
+        "latest_target": (
+            {
+                "effective_date": latest["date"].strftime("%Y-%m-%d"),
+                "signal_date": latest["signal_date"].strftime("%Y-%m-%d"),
+                "gold": latest["GOLD"],
+                "bitcoin": latest["BTC"],
+            }
+            if latest
+            else None
+        ),
     }
 
 
@@ -359,8 +396,6 @@ elif page == "环境与证据":
     render_evidence()
 elif page == "双资产配置":
     render_allocation()
-elif page == "历史验证":
-    render_history()
 elif page == "稳定币研究":
     render_stablecoin()
 else:
